@@ -13,6 +13,7 @@ import 'package:get/get.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:flutter_hbb/models/peer_model.dart';
+import 'package:flutter_hbb/common/widgets/ticket_system.dart';
 
 import '../../common.dart';
 import '../../common/formatter/id_formatter.dart';
@@ -523,6 +524,20 @@ class _ConnectionPageState extends State<ConnectionPage>
                       onConnect();
                     },
                     child: Text(translate("Connect")),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                SizedBox(
+                  height: 28.0,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      openTicketSystem();
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.orange,
+                      foregroundColor: Colors.white,
+                    ),
+                    child: Text("Destek Talebi"),
                   ),
                 ),
                 const SizedBox(width: 8),

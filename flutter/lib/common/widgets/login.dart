@@ -11,8 +11,11 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../common.dart';
+import 'dart:convert';
 import './dialog.dart';
+import './register_dialog.dart';
 import './oidc_auth_status.dart';
+import '../utils/http_service.dart' as http;
 
 const kOpSvgList = [
   'github',
@@ -691,6 +694,27 @@ class LoginWidgetUserPass extends StatelessWidget {
                     )),
               ),
             ])),
+            const SizedBox(height: 8.0),
+            TextButton(
+              onPressed: () {
+                Get.back(); // Kapat Login dialog
+                registerDialog().then((res) {
+                  if (res != true) {
+                    loginDialog(); // İptal ederse tekrar login aç
+                  }
+                });
+              },
+              child: const Text('Hesabınız yok mu? Kayıt Olun'),
+            ),
+            TextButton(
+              onPressed: () {
+                Get.back(); // Kapat Login dialog
+                forgotPasswordDialog().then((_) {
+                  loginDialog(); // İşlem bitince tekrar login aç
+                });
+              },
+              child: const Text('Şifremi Unuttum', style: TextStyle(color: Colors.grey)),
+            ),
           ],
         ));
   }

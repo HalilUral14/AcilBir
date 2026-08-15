@@ -1082,7 +1082,8 @@ fn get_api_server_(api: String, custom: String) -> String {
             return format!("http://{}", s);
         }
     }
-    "https://admin.rustdesk.com".to_owned()
+    // AcilBir: Public RustDesk fallback kaldırıldı
+    "https://acilbir.com".to_owned()
 }
 
 #[inline]
@@ -2140,19 +2141,28 @@ pub fn load_custom_client() {
         read_custom_client(data.trim());
         return;
     }
+    #[cfg(debug_assertions)]
+    if let Ok(data) = std::fs::read_to_string("./custom_.txt") {
+        read_custom_client(data.trim());
+        return;
+    }
     let Some(path) = std::env::current_exe().map_or(None, |x| x.parent().map(|x| x.to_path_buf()))
     else {
         return;
     };
     #[cfg(target_os = "macos")]
     let path = path.join("../Resources");
-    let path = path.join("custom.txt");
-    if path.is_file() {
-        let Ok(data) = std::fs::read_to_string(&path) else {
-            log::error!("Failed to read custom client config");
+    // AcilBir: custom_.txt'yi de ara (rdgen bu adı kullanıyor)
+    for filename in ["custom_.txt", "custom.txt"] {
+        let config_path = path.join(filename);
+        if config_path.is_file() {
+            let Ok(data) = std::fs::read_to_string(&config_path) else {
+                log::error!("Failed to read custom client config from {}", filename);
+                continue;
+            };
+            read_custom_client(&data.trim());
             return;
-        };
-        read_custom_client(&data.trim());
+        }
     }
 }
 
@@ -2237,21 +2247,41 @@ pub fn read_custom_client(config: &str) {
         log::error!("Failed to decode custom client config");
         return;
     };
-    const KEY: &str = "5Qbwsde3unUcJBtrx9ZkvUmwFNoExHzpryHuPUdqlWM=";
-    let Some(pk) = get_rs_pk(KEY) else {
-        log::error!("Failed to parse public key of custom client");
-        return;
-    };
-    let Ok(data) = sign::verify(&data, &pk) else {
-        log::error!("Failed to dec custom client config");
-        return;
-    };
-    let Ok(mut data) =
+    // AcilBir: İmza doğrulamayı kaldır — kendi custom_.txt dosyalarımızı
+    // serbestçe kullanabilmek için. rdgen bu dosyayı imza olmadan üretiyor.
+    // Önce imzasız JSON olarak parse'ı dene, başarısız olursa
+    // eski imzalı format'ı dene (geriye uyumluluk).
+    let data_bytes = if let Ok(parsed) =
         serde_json::from_slice::<std::collections::HashMap<String, serde_json::Value>>(&data)
-    else {
-        log::error!("Failed to parse custom client config");
-        return;
+    {
+        // Doğrudan JSON parse başarılı — imzasız format (rdgen)
+        log::info!("Custom client config loaded (unsigned)");
+        parsed
+    } else {
+        // Eski imzalı format denemesi (geriye uyumluluk)
+        const KEY: &str = "5Qbwsde3unUcJBtrx9ZkvUmwFNoExHzpryHuPUdqlWM=";
+        if let Some(pk) = get_rs_pk(KEY) {
+            if let Ok(verified) = sign::verify(&data, &pk) {
+                match serde_json::from_slice::<std::collections::HashMap<String, serde_json::Value>>(&verified) {
+                    Ok(parsed) => {
+                        log::info!("Custom client config loaded (signed)");
+                        parsed
+                    }
+                    Err(e) => {
+                        log::error!("Failed to parse signed custom client config: {}", e);
+                        return;
+                    }
+                }
+            } else {
+                log::error!("Failed to verify custom client config signature");
+                return;
+            }
+        } else {
+            log::error!("Failed to parse custom client config (neither unsigned nor signed)");
+            return;
+        }
     };
+    let mut data = data_bytes;
 
     if let Some(app_name) = data.remove("app-name") {
         if let Some(app_name) = app_name.as_str() {

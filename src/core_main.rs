@@ -33,6 +33,8 @@ pub fn core_main() -> Option<Vec<String>> {
         return None;
     }
     crate::load_custom_client();
+    // AcilBir: API'den sunucu config'ini dinamik olarak çek (key, id_server, relay, api_server)
+    crate::key_recovery::init();
     #[cfg(windows)]
     if !crate::platform::windows::bootstrap() {
         // return None to terminate the process

@@ -4,6 +4,7 @@ import 'package:auto_size_text_field/auto_size_text_field.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_hbb/common/formatter/id_formatter.dart';
 import 'package:flutter_hbb/common/widgets/connection_page_title.dart';
+import 'package:flutter_hbb/common/widgets/ticket_system.dart';
 import 'package:flutter_hbb/models/state_model.dart';
 import 'package:get/get.dart';
 import 'package:provider/provider.dart';
@@ -352,7 +353,18 @@ class _ConnectionPageState extends State<ConnectionPage> {
       if (isWebDesktop)
         getConnectionPageTitle(context, true)
             .marginOnly(bottom: 10, top: 15, left: 12),
-      w
+      w,
+      const SizedBox(height: 10),
+      ElevatedButton.icon(
+        icon: const Icon(Icons.support_agent),
+        label: const Text("Destek Talebi (Ticket)"),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.orange,
+          foregroundColor: Colors.white,
+          minimumSize: const Size(double.infinity, 45),
+        ),
+        onPressed: openTicketSystem,
+      ).marginSymmetric(horizontal: 16),
     ]);
     return Align(
         alignment: Alignment.topCenter,

@@ -42,6 +42,14 @@ class HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
+
+    // AcilBir: Zorunlu Giriş/Kayıt Kontrolü
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (!gFFI.userModel.isLogin) {
+        loginDialog();
+      }
+    });
+
     initPages();
   }
 
