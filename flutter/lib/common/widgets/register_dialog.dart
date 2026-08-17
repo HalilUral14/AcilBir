@@ -4,7 +4,7 @@ import 'package:get/get.dart';
 import 'package:flutter_hbb/common/hbbs/hbbs.dart';
 import 'package:flutter_hbb/common.dart';
 import 'package:flutter_hbb/models/user_model.dart';
-import '../utils/http_service.dart' as http;
+import 'package:flutter_hbb/utils/http_service.dart' as http;
 import 'dialog.dart';
 
 Future<bool?> registerDialog() async {

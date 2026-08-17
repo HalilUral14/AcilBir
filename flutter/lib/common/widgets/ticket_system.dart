@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:flutter_hbb/common/hbbs/hbbs.dart';
 import 'package:flutter_hbb/common.dart';
-import '../utils/http_service.dart' as http;
+import 'package:flutter_hbb/utils/http_service.dart' as http;
 
 Future<void> openTicketSystem() async {
   Get.to(() => const TicketListPage());

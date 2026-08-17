@@ -15,7 +15,7 @@ import 'dart:convert';
 import './dialog.dart';
 import './register_dialog.dart';
 import './oidc_auth_status.dart';
-import '../utils/http_service.dart' as http;
+import 'package:flutter_hbb/utils/http_service.dart' as http;
 
 const kOpSvgList = [
   'github',
