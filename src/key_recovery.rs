@@ -28,8 +28,7 @@ struct ServerKeyResponse {
 /// Arka plan thread'i başlatır — startup config check + exponential backoff retry
 pub fn init() {
     std::thread::spawn(|| {
-        // Kısa bir gecikme — uygulamanın diğer init adımlarının tamamlanmasını bekle
-        std::thread::sleep(Duration::from_secs(2));
+        std::thread::sleep(Duration::from_millis(200));
         startup_config_check();
     });
 }
@@ -51,7 +50,16 @@ fn startup_config_check() {
             log::info!("key_recovery: config applied successfully");
         }
         Err(e) => {
-            log::warn!("key_recovery: initial fetch failed: {}, starting recovery", e);
+            log::warn!("key_recovery: initial fetch failed: {}, applying embedded fallback", e);
+            let options = Config::get_options();
+            if options.get("custom-rendezvous-server").map(|s| s.is_empty()).unwrap_or(true) {
+                apply_config(&ServerKeyResponse {
+                    key: "ctqWJG3PIl9bk3h3Obs8HPS4wRZzCuZPhsjuSlwzhpE=".to_string(),
+                    id_server: "acilbir.com".to_string(),
+                    relay: "acilbir.com".to_string(),
+                    api_server: "https://acilbir.com".to_string(),
+                });
+            }
             connection_error_recovery(&api_server);
         }
     }
@@ -150,6 +158,7 @@ fn apply_config(config: &ServerKeyResponse) {
 
     if changed {
         Config::set_options(options);
+        crate::common::refresh_rendezvous_server();
     }
 }
 

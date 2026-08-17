@@ -130,9 +130,72 @@ Future<void> initEnv(String appType) async {
   updateSystemWindowTheme();
 }
 
+Future<void> syncAcilBirServerConfig() async {
+  try {
+    Map<String, dynamic> options = {};
+    try {
+      options = jsonDecode(await bind.mainGetOptions());
+    } catch (_) {}
+
+    final currentIdServer = (options['custom-rendezvous-server'] ?? '').toString().trim();
+    final currentKey = (options['key'] ?? '').toString().trim();
+
+    if (currentIdServer.isEmpty || currentKey.isEmpty) {
+      debugPrint("AcilBir: Checking remote server-key from API...");
+      String idServer = 'acilbir.com';
+      String relay = 'acilbir.com';
+      String apiServer = 'https://acilbir.com';
+      String key = 'ctqWJG3PIl9bk3h3Obs8HPS4wRZzCuZPhsjuSlwzhpE=';
+
+      try {
+        final client = HttpClient();
+        client.connectionTimeout = const Duration(seconds: 3);
+        final request = await client.getUrl(Uri.parse('https://acilbir.com/api/server-key'));
+        final response = await request.close().timeout(const Duration(seconds: 3));
+        if (response.statusCode == 200) {
+          final responseBody = await response.transform(utf8.decoder).join();
+          final data = jsonDecode(responseBody);
+          if (data is Map) {
+            if (data['id_server'] != null && data['id_server'].toString().isNotEmpty) {
+              idServer = data['id_server'].toString();
+            }
+            if (data['relay'] != null && data['relay'].toString().isNotEmpty) {
+              relay = data['relay'].toString();
+            }
+            if (data['api_server'] != null && data['api_server'].toString().isNotEmpty) {
+              apiServer = data['api_server'].toString();
+            }
+            if (data['key'] != null && data['key'].toString().isNotEmpty) {
+              key = data['key'].toString();
+            }
+          }
+        }
+        client.close();
+      } catch (err) {
+        debugPrint("AcilBir: Remote config fetch error ($err), using embedded AcilBir config.");
+      }
+
+      await setServerConfig(
+        null,
+        null,
+        ServerConfig(
+          idServer: idServer,
+          relayServer: relay,
+          apiServer: apiServer,
+          key: key,
+        ),
+      );
+      debugPrint("AcilBir: Applied server config (idServer: $idServer, key: $key)");
+    }
+  } catch (e) {
+    debugPrint("AcilBir: syncAcilBirServerConfig failure: $e");
+  }
+}
+
 void runMainApp(bool startService) async {
   // register uni links
   await initEnv(kAppTypeMain);
+  await syncAcilBirServerConfig();
   checkUpdate();
   // trigger connection status updater
   await bind.mainCheckConnectStatus();
@@ -175,6 +238,7 @@ void runMainApp(bool startService) async {
 
 void runMobileApp() async {
   await initEnv(kAppTypeMain);
+  await syncAcilBirServerConfig();
   checkUpdate();
   if (isAndroid) androidChannelInit();
   if (isAndroid) platformFFI.syncAndroidServiceAppDirConfigPath();
