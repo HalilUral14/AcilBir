@@ -1153,3 +1153,69 @@ void logOutConfirmDialog() {
     );
   });
 }
+
+Future<void> forgotPasswordDialog() async {
+  final emailController = TextEditingController();
+  bool isLoading = false;
+
+  await Get.dialog(
+    StatefulBuilder(builder: (context, setState) {
+      return AlertDialog(
+        title: const Text('Şifre Sıfırlama'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Kayıtlı e-posta adresinizi girin. Size bir sıfırlama bağlantısı göndereceğiz.'),
+            const SizedBox(height: 16),
+            TextField(
+              controller: emailController,
+              decoration: const InputDecoration(labelText: 'E-posta adresi'),
+            ),
+            if (isLoading)
+              const Padding(
+                padding: EdgeInsets.only(top: 16),
+                child: CircularProgressIndicator(),
+              ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(),
+            child: const Text('İptal'),
+          ),
+          ElevatedButton(
+            onPressed: isLoading
+                ? null
+                : () async {
+                    if (emailController.text.trim().isEmpty) return;
+                    setState(() => isLoading = true);
+                    try {
+                      final url = await bind.mainGetApiServer();
+                      final response = await http.post(
+                        Uri.parse('$url/api/forgot-password'),
+                        headers: {'Content-Type': 'application/json'},
+                        body: json.encode({'email': emailController.text.trim()}),
+                      );
+                      if (response.statusCode == 200) {
+                        Get.back();
+                        showToast('Şifre sıfırlama bağlantısı gönderildi.');
+                      } else {
+                        final data = json.decode(response.body);
+                        throw data['error'] ?? 'Bilinmeyen bir hata oluştu.';
+                      }
+                    } catch (e) {
+                      Get.snackbar('Hata', e.toString());
+                    } finally {
+                      if (context.mounted) {
+                        setState(() => isLoading = false);
+                      }
+                    }
+                  },
+            child: const Text('Gönder'),
+          ),
+        ],
+      );
+    }),
+  );
+}
+
