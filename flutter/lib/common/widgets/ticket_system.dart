@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:flutter_hbb/common.dart';
+import 'package:flutter_hbb/common.dart' hide Dialog;
 import 'package:flutter_hbb/models/platform_model.dart';
 import 'package:flutter_hbb/models/user_model.dart';
 import 'package:flutter_hbb/utils/http_service.dart' as http;
@@ -1295,7 +1295,7 @@ class _TicketDetailPageState extends State<TicketDetailPage> {
                                     '• AcilBir ID: $myId\n';
 
                                 setState(() {
-                                  _replyController.text = (_replyController.text.trim() + ' ' + diag).trim();
+                                  _replyController.text = '${_replyController.text.trim()} $diag'.trim();
                                 });
                               },
                             ),

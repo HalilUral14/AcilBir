@@ -11,9 +11,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../common.dart';
-import 'dart:convert';
 import './dialog.dart';
-import './register_dialog.dart';
 import './oidc_auth_status.dart';
 import 'package:flutter_hbb/utils/http_service.dart' as http;
 
@@ -1160,7 +1158,7 @@ Future<bool?> _openLoginDialog() async {
                     child: DialogTextField(
                       title: 'Ad *',
                       controller: registerFirstName,
-                      prefixIcon: Icons.person_outline,
+                      prefixIcon: const Icon(Icons.person_outline),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -1168,7 +1166,7 @@ Future<bool?> _openLoginDialog() async {
                     child: DialogTextField(
                       title: 'Soyad *',
                       controller: registerLastName,
-                      prefixIcon: Icons.person_outline,
+                      prefixIcon: const Icon(Icons.person_outline),
                     ),
                   ),
                 ],
@@ -1181,7 +1179,7 @@ Future<bool?> _openLoginDialog() async {
                       child: DialogTextField(
                         title: 'Firma Adı *',
                         controller: registerOrgName,
-                        prefixIcon: Icons.business_outlined,
+                        prefixIcon: const Icon(Icons.business_outlined),
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -1189,7 +1187,7 @@ Future<bool?> _openLoginDialog() async {
                       child: DialogTextField(
                         title: 'Vergi No (VKN) *',
                         controller: registerTaxId,
-                        prefixIcon: Icons.numbers_outlined,
+                        prefixIcon: const Icon(Icons.numbers_outlined),
                       ),
                     ),
                   ],
@@ -1199,7 +1197,7 @@ Future<bool?> _openLoginDialog() async {
               DialogTextField(
                 title: 'E-posta Adresi *',
                 controller: registerEmail,
-                prefixIcon: Icons.email_outlined,
+                prefixIcon: const Icon(Icons.email_outlined),
               ),
               const SizedBox(height: 4),
               Row(
@@ -1272,7 +1270,7 @@ Future<bool?> _openLoginDialog() async {
             DialogTextField(
               title: 'E-posta Adresi',
               controller: forgotEmail,
-              prefixIcon: Icons.email_outlined,
+              prefixIcon: const Icon(Icons.email_outlined),
             ),
             if (isInProgress) const LinearProgressIndicator(),
             const SizedBox(height: 16),
