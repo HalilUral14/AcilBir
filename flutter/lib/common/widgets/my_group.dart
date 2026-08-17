@@ -286,11 +286,15 @@ class _MyGroupState extends State<MyGroup> {
   Widget _buildDeviceGroupItem(DeviceGroupPayload deviceGroup) {
     final name = deviceGroup.name;
     return InkWell(onTap: () {
-      isSelectedDeviceGroup.value = true;
-      if (selectedAccessibleItemName.value != name) {
-        selectedAccessibleItemName.value = name;
+      if (stateGlobal.isPortrait.isTrue) {
+        Get.to(() => DeviceGroupDetailPage(deviceGroup: deviceGroup));
       } else {
-        selectedAccessibleItemName.value = '';
+        isSelectedDeviceGroup.value = true;
+        if (selectedAccessibleItemName.value != name) {
+          selectedAccessibleItemName.value = name;
+        } else {
+          selectedAccessibleItemName.value = '';
+        }
       }
     }, child: Obx(
       () {
@@ -314,6 +318,17 @@ class _MyGroupState extends State<MyGroup> {
                       color: MyTheme.accent, size: 19),
                 ).marginOnly(right: 4),
                 Expanded(child: Text(name)),
+                InkWell(
+                  onTap: () => Get.to(() => DeviceGroupDetailPage(deviceGroup: deviceGroup)),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                    child: Icon(
+                      Icons.arrow_forward_ios_rounded,
+                      size: 11,
+                      color: Theme.of(context).hintColor.withOpacity(0.6),
+                    ),
+                  ),
+                ),
               ],
             ).paddingSymmetric(vertical: 4),
           ),
@@ -339,7 +354,29 @@ class UserDetailPage extends StatelessWidget {
         title: Text(displayName, style: const TextStyle(fontWeight: FontWeight.bold)),
       ),
       body: Obx(() {
-        final userPeers = gFFI.groupModel.peers.where((p) => p.username == username).toList();
+        // Collect all accessible peers from both groupModel and abModel
+        final allPeers = <Peer>[...gFFI.groupModel.peers];
+        for (final abPeer in gFFI.abModel.peers) {
+          if (!allPeers.any((p) => p.id == abPeer.id)) {
+            allPeers.add(abPeer);
+          }
+        }
+
+        // Match by account loginName or local username
+        final userPeers = allPeers.where((p) {
+          final pLogin = p.loginName.trim();
+          final pUser = p.username.trim();
+          final uName = username.trim();
+          final uDisp = user.displayName.trim();
+
+          if (pLogin.isNotEmpty && (pLogin == uName || (uDisp.isNotEmpty && pLogin == uDisp))) {
+            return true;
+          }
+          if (pUser.isNotEmpty && (pUser == uName || (uDisp.isNotEmpty && pUser == uDisp))) {
+            return true;
+          }
+          return false;
+        }).toList();
 
         return ListView(
           padding: const EdgeInsets.all(16),
@@ -487,7 +524,170 @@ class UserDetailPage extends StatelessWidget {
                       ],
                     ),
                     subtitle: Text(
-                      'ID: ${peer.id} • Platform: ${peer.platform.isNotEmpty ? peer.platform : "Bilinmiyor"}',
+                      'ID: ${peer.id} • Platform: ${peer.platform.isNotEmpty ? peer.platform : "Bilinmiyor"}${peer.device_group_name.isNotEmpty ? " • Grup: ${peer.device_group_name}" : ""}',
+                      style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodySmall?.color),
+                    ),
+                    trailing: ElevatedButton.icon(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.teal.shade700,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      ),
+                      icon: const Icon(Icons.flash_on_rounded, size: 14),
+                      label: const Text('Bağlan', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+                      onPressed: () {
+                        connect(context, peer.id);
+                      },
+                    ),
+                  ),
+                );
+              }),
+          ],
+        );
+      }),
+    );
+  }
+}
+
+/// Dedicated Subpage for Viewing a specific Device Group and its connected devices
+class DeviceGroupDetailPage extends StatelessWidget {
+  final DeviceGroupPayload deviceGroup;
+  const DeviceGroupDetailPage({Key? key, required this.deviceGroup}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final groupName = deviceGroup.name;
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(groupName, style: const TextStyle(fontWeight: FontWeight.bold)),
+      ),
+      body: Obx(() {
+        final groupPeers = gFFI.groupModel.peers.where((p) => p.device_group_name == groupName).toList();
+
+        return ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
+            // Device Group Header Card
+            Card(
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+                side: BorderSide(color: Theme.of(context).dividerColor.withOpacity(0.3)),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: MyTheme.accent.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(IconFont.deviceGroupOutline, color: MyTheme.accent, size: 26),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            groupName,
+                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Cihaz Grubu • Toplam ${groupPeers.length} cihaz',
+                            style: TextStyle(fontSize: 13, color: Theme.of(context).textTheme.bodySmall?.color),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                const Icon(Icons.devices_rounded, size: 20, color: Colors.blueGrey),
+                const SizedBox(width: 8),
+                Text(
+                  'Gruptaki Cihazlar (${groupPeers.length})',
+                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            if (groupPeers.isEmpty)
+              Padding(
+                padding: const EdgeInsets.all(32),
+                child: Center(
+                  child: Column(
+                    children: [
+                      Icon(Icons.desktop_access_disabled_rounded, size: 48, color: Colors.grey.withOpacity(0.5)),
+                      const SizedBox(height: 12),
+                      const Text(
+                        'Bu grupta henüz kayıtlı cihaz bulunmuyor.',
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                    ],
+                  ),
+                ),
+              )
+            else
+              ...groupPeers.map((peer) {
+                final isOnline = peer.online;
+                return Card(
+                  elevation: 0,
+                  margin: const EdgeInsets.only(bottom: 10),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: BorderSide(color: Theme.of(context).dividerColor.withOpacity(0.3)),
+                  ),
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                    leading: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: (isOnline ? Colors.green : Colors.grey).withOpacity(0.12),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.desktop_windows_rounded,
+                        color: isOnline ? Colors.green : Colors.grey,
+                        size: 22,
+                      ),
+                    ),
+                    title: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            peer.hostname.isNotEmpty ? peer.hostname : peer.id,
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: (isOnline ? Colors.green : Colors.grey).withOpacity(0.12),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            isOnline ? 'ÇEVRİMİÇİ' : 'ÇEVRİMDIŞI',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: isOnline ? Colors.green.shade800 : Colors.grey,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    subtitle: Text(
+                      'ID: ${peer.id} • Sahibi: ${peer.loginName.isNotEmpty ? peer.loginName : "Atanmamış"} • Platform: ${peer.platform.isNotEmpty ? peer.platform : "Bilinmiyor"}',
                       style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodySmall?.color),
                     ),
                     trailing: ElevatedButton.icon(
