@@ -631,6 +631,8 @@ class LoginWidgetOP extends StatelessWidget {
   }
 }
 
+enum _AuthView { login, register, forgotPassword }
+
 class LoginWidgetUserPass extends StatelessWidget {
   final TextEditingController username;
   final TextEditingController pass;
@@ -639,7 +641,10 @@ class LoginWidgetUserPass extends StatelessWidget {
   final bool isInProgress;
   final RxString curOP;
   final Function() onLogin;
+  final Function()? onGoToRegister;
+  final Function()? onGoToForgotPassword;
   final FocusNode? userFocusNode;
+
   const LoginWidgetUserPass({
     Key? key,
     this.userFocusNode,
@@ -650,6 +655,8 @@ class LoginWidgetUserPass extends StatelessWidget {
     required this.isInProgress,
     required this.curOP,
     required this.onLogin,
+    this.onGoToRegister,
+    this.onGoToForgotPassword,
   }) : super(key: key);
 
   @override
@@ -672,7 +679,6 @@ class LoginWidgetUserPass extends StatelessWidget {
               reRequestFocus: true,
               errorText: passMsg,
             ),
-            // NOT use Offstage to wrap LinearProgressIndicator
             if (isInProgress) const LinearProgressIndicator(),
             const SizedBox(height: 12.0),
             FittedBox(
@@ -696,23 +702,11 @@ class LoginWidgetUserPass extends StatelessWidget {
             ])),
             const SizedBox(height: 8.0),
             TextButton(
-              onPressed: () {
-                Get.back(); // Kapat Login dialog
-                registerDialog().then((res) {
-                  if (res != true) {
-                    loginDialog(); // İptal ederse tekrar login aç
-                  }
-                });
-              },
+              onPressed: onGoToRegister,
               child: const Text('Hesabınız yok mu? Kayıt Olun'),
             ),
             TextButton(
-              onPressed: () {
-                Get.back(); // Kapat Login dialog
-                forgotPasswordDialog().then((_) {
-                  loginDialog(); // İşlem bitince tekrar login aç
-                });
-              },
+              onPressed: onGoToForgotPassword,
               child: const Text('Şifremi Unuttum', style: TextStyle(color: Colors.grey)),
             ),
           ],
@@ -744,6 +738,9 @@ Future<bool?> _openLoginDialogOnce() async {
 }
 
 Future<bool?> _openLoginDialog() async {
+  var currentView = _AuthView.login;
+
+  // Login controllers
   var username =
       TextEditingController(text: UserModel.getLocalUserInfo()?['name'] ?? '');
   var password = TextEditingController();
@@ -755,8 +752,22 @@ Future<bool?> _openLoginDialog() async {
   var isInProgress = false;
   final oidcAuth = _OidcAuthController();
   final curOP = oidcAuth.curOP;
-  // Track hover state for the close icon
   bool isCloseHovered = false;
+
+  // Register state
+  String registerAccountType = 'individual';
+  final registerFirstName = TextEditingController();
+  final registerLastName = TextEditingController();
+  final registerOrgName = TextEditingController();
+  final registerTaxId = TextEditingController();
+  final registerEmail = TextEditingController();
+  final registerPassword = TextEditingController();
+  final registerConfirmPassword = TextEditingController();
+  String? registerError;
+
+  // Forgot password state
+  final forgotEmail = TextEditingController();
+  String? forgotError;
 
   final loginOptions = [].obs;
   final loginOptionsError = Rxn<Object>();
@@ -828,9 +839,6 @@ Future<bool?> _openLoginDialog() async {
                   resp.user, resp.secret, isEmailVerification);
             } else {
               setState(() => isInProgress = false);
-              // Workaround for web, close the dialog first, then show the verification code dialog.
-              // Otherwise, the text field will keep selecting the text and we can't input the code.
-              // Not sure why this happens.
               if (isWeb && close != null) close(null);
               final res = await verificationCodeDialog(
                   resp.user, resp.secret, isEmailVerification);
@@ -851,7 +859,6 @@ Future<bool?> _openLoginDialog() async {
       if (curOP.value.isNotEmpty || isInProgress) {
         return;
       }
-      // validate
       if (username.text.isEmpty) {
         setState(() => usernameMsg = translate('Username missed'));
         return;
@@ -880,6 +887,118 @@ Future<bool?> _openLoginDialog() async {
       setState(() => isInProgress = false);
     }
 
+    onRegisterSubmit() async {
+      if (registerFirstName.text.trim().length < 2) {
+        setState(() => registerError = 'Ad en az 2 karakter olmalıdır.');
+        return;
+      }
+      if (registerLastName.text.trim().length < 2) {
+        setState(() => registerError = 'Soyad en az 2 karakter olmalıdır.');
+        return;
+      }
+      if (registerEmail.text.trim().isEmpty || !registerEmail.text.contains('@')) {
+        setState(() => registerError = 'Geçerli bir e-posta adresi giriniz.');
+        return;
+      }
+      if (registerPassword.text.length < 4) {
+        setState(() => registerError = 'Şifre en az 4 karakter olmalıdır.');
+        return;
+      }
+      if (registerPassword.text != registerConfirmPassword.text) {
+        setState(() => registerError = 'Şifreler eşleşmiyor.');
+        return;
+      }
+      if (registerAccountType == 'company') {
+        if (registerOrgName.text.trim().isEmpty) {
+          setState(() => registerError = 'Firma adı gereklidir.');
+          return;
+        }
+        if (registerTaxId.text.trim().isEmpty) {
+          setState(() => registerError = 'Vergi numarası gereklidir.');
+          return;
+        }
+      }
+
+      setState(() {
+        isInProgress = true;
+        registerError = null;
+      });
+
+      try {
+        final url = await bind.mainGetApiServer();
+        final body = {
+          'account_type': registerAccountType,
+          'first_name': registerFirstName.text.trim(),
+          'last_name': registerLastName.text.trim(),
+          'org_name': registerAccountType == 'company' ? registerOrgName.text.trim() : '',
+          'tax_id': registerAccountType == 'company' ? registerTaxId.text.trim() : '',
+          'email': registerEmail.text.trim(),
+          'password': registerPassword.text,
+          'confirm_password': registerConfirmPassword.text,
+          'locale': 'tr',
+        };
+
+        final response = await http.post(
+          Uri.parse('$url/api/register'),
+          headers: {'Content-Type': 'application/json'},
+          body: json.encode(body),
+        );
+
+        final data = json.decode(response.body);
+        if (response.statusCode != 200) {
+          throw data['error'] ?? data['msg'] ?? 'Kayıt başarısız oldu.';
+        }
+
+        if (data['type'] == 'access_token') {
+          await bind.mainSetLocalOption(key: 'access_token', value: data['access_token']);
+          await bind.mainSetLocalOption(key: 'user_info', value: json.encode(data['user']));
+          gFFI.userModel.refreshCurrentUser();
+          close(true);
+        } else if (data['type'] == 'email_check') {
+          showToast('Kayıt başarılı! Lütfen e-posta adresinizi doğrulayın.');
+          setState(() => currentView = _AuthView.login);
+        } else {
+          showToast('Kayıt başarılı! Yönetici onayından sonra giriş yapabilirsiniz.');
+          setState(() => currentView = _AuthView.login);
+        }
+      } catch (e) {
+        setState(() => registerError = e.toString().replaceAll('Exception: ', ''));
+      } finally {
+        setState(() => isInProgress = false);
+      }
+    }
+
+    onForgotPasswordSubmit() async {
+      if (forgotEmail.text.trim().isEmpty || !forgotEmail.text.contains('@')) {
+        setState(() => forgotError = 'Lütfen geçerli bir e-posta adresi giriniz.');
+        return;
+      }
+      setState(() {
+        isInProgress = true;
+        forgotError = null;
+      });
+
+      try {
+        final url = await bind.mainGetApiServer();
+        final response = await http.post(
+          Uri.parse('$url/api/forgot-password'),
+          headers: {'Content-Type': 'application/json'},
+          body: json.encode({'email': forgotEmail.text.trim()}),
+        );
+        if (response.statusCode == 200) {
+          showToast('Şifre sıfırlama bağlantısı e-posta adresinize gönderildi.');
+          setState(() => currentView = _AuthView.login);
+        } else {
+          final data = json.decode(response.body);
+          throw data['error'] ?? data['msg'] ?? 'Şifre sıfırlama talebi başarısız oldu.';
+        }
+      } catch (e) {
+        setState(() => forgotError = e.toString().replaceAll('Exception: ', ''));
+      } finally {
+        setState(() => isInProgress = false);
+      }
+    }
+
     thirdAuthWidget() => Obx(() {
           final error = loginOptionsError.value;
           final inProgress = loginOptionsInProgress.value;
@@ -887,7 +1006,6 @@ Future<bool?> _openLoginDialog() async {
             return Column(
               children: [
                 const SizedBox(height: 8.0),
-                // NOT use Offstage to wrap LinearProgressIndicator
                 if (inProgress) const LinearProgressIndicator(),
                 if (!inProgress && error is! RequestException)
                   Text(
@@ -915,17 +1033,13 @@ Future<bool?> _openLoginDialog() async {
             offstage: loginOptions.isEmpty,
             child: Column(
               children: [
-                const SizedBox(
-                  height: 8.0,
-                ),
+                const SizedBox(height: 8.0),
                 Center(
                     child: Text(
                   translate('or'),
-                  style: TextStyle(fontSize: 16),
+                  style: const TextStyle(fontSize: 16),
                 )),
-                const SizedBox(
-                  height: 8.0,
-                ),
+                const SizedBox(height: 8.0),
                 LoginWidgetOP(
                   ops: loginOptions
                       .map((e) => ConfigOP(op: e['name'], icon: e['icon']))
@@ -937,7 +1051,6 @@ Future<bool?> _openLoginDialog() async {
                   cbLogin: (Map<String, dynamic> authBody) async {
                     LoginResponse? resp;
                     try {
-                      // access_token is already stored in the rust side.
                       resp =
                           gFFI.userModel.getLoginResponseFromAuthBody(authBody);
                     } catch (e) {
@@ -956,12 +1069,20 @@ Future<bool?> _openLoginDialog() async {
           );
         });
 
+    String titleText = translate('Login');
+    if (currentView == _AuthView.register) {
+      titleText = 'Kayıt Ol - AcilBir';
+    } else if (currentView == _AuthView.forgotPassword) {
+      titleText = 'Şifre Sıfırlama';
+    }
+
     final title = Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          translate('Login'),
+          titleText,
+          style: const TextStyle(fontWeight: FontWeight.bold),
         ).marginOnly(top: MyTheme.dialogPadding),
         MouseRegion(
           onEnter: (_) => setState(() => isCloseHovered = true),
@@ -970,8 +1091,6 @@ Future<bool?> _openLoginDialog() async {
             child: Icon(
               Icons.close,
               size: 25,
-              // No need to handle the branch of null.
-              // Because we can ensure the color is not null when debug.
               color: isCloseHovered
                   ? Colors.white
                   : Theme.of(context)
@@ -989,31 +1108,238 @@ Future<bool?> _openLoginDialog() async {
     );
     final titlePadding = EdgeInsets.fromLTRB(MyTheme.dialogPadding, 0, 0, 0);
 
+    Widget buildCurrentBody() {
+      if (currentView == _AuthView.register) {
+        return SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (registerError != null)
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  margin: const EdgeInsets.only(bottom: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.red.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: Colors.red.withOpacity(0.3)),
+                  ),
+                  child: Text(
+                    registerError!,
+                    style: const TextStyle(color: Colors.red, fontSize: 12),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              Row(
+                children: [
+                  Expanded(
+                    child: RadioListTile<String>(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Bireysel', style: TextStyle(fontSize: 13)),
+                      value: 'individual',
+                      groupValue: registerAccountType,
+                      onChanged: (v) => setState(() => registerAccountType = v ?? 'individual'),
+                    ),
+                  ),
+                  Expanded(
+                    child: RadioListTile<String>(
+                      dense: true,
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Kurumsal', style: TextStyle(fontSize: 13)),
+                      value: 'company',
+                      groupValue: registerAccountType,
+                      onChanged: (v) => setState(() => registerAccountType = v ?? 'company'),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  Expanded(
+                    child: DialogTextField(
+                      title: 'Ad *',
+                      controller: registerFirstName,
+                      prefixIcon: Icons.person_outline,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: DialogTextField(
+                      title: 'Soyad *',
+                      controller: registerLastName,
+                      prefixIcon: Icons.person_outline,
+                    ),
+                  ),
+                ],
+              ),
+              if (registerAccountType == 'company') ...[
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Expanded(
+                      child: DialogTextField(
+                        title: 'Firma Adı *',
+                        controller: registerOrgName,
+                        prefixIcon: Icons.business_outlined,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: DialogTextField(
+                        title: 'Vergi No (VKN) *',
+                        controller: registerTaxId,
+                        prefixIcon: Icons.numbers_outlined,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+              const SizedBox(height: 4),
+              DialogTextField(
+                title: 'E-posta Adresi *',
+                controller: registerEmail,
+                prefixIcon: Icons.email_outlined,
+              ),
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  Expanded(
+                    child: PasswordWidget(
+                      controller: registerPassword,
+                      autoFocus: false,
+                      reRequestFocus: false,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: PasswordWidget(
+                      controller: registerConfirmPassword,
+                      autoFocus: false,
+                      reRequestFocus: false,
+                    ),
+                  ),
+                ],
+              ),
+              if (isInProgress) const LinearProgressIndicator(),
+              const SizedBox(height: 12),
+              Center(
+                child: SizedBox(
+                  height: 38,
+                  width: 220,
+                  child: ElevatedButton(
+                    onPressed: isInProgress ? null : onRegisterSubmit,
+                    child: const Text('Kayıt Ol', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 6),
+              TextButton(
+                onPressed: () => setState(() {
+                  registerError = null;
+                  currentView = _AuthView.login;
+                }),
+                child: const Text('Zaten bir hesabınız var mı? Giriş Yapın'),
+              ),
+            ],
+          ),
+        );
+      } else if (currentView == _AuthView.forgotPassword) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text(
+              'Kayıtlı e-posta adresinizi girin. Size bir şifre sıfırlama bağlantısı göndereceğiz.',
+              style: TextStyle(fontSize: 13),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 12),
+            if (forgotError != null)
+              Container(
+                padding: const EdgeInsets.all(8),
+                margin: const EdgeInsets.only(bottom: 8),
+                decoration: BoxDecoration(
+                  color: Colors.red.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: Colors.red.withOpacity(0.3)),
+                ),
+                child: Text(
+                  forgotError!,
+                  style: const TextStyle(color: Colors.red, fontSize: 12),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            DialogTextField(
+              title: 'E-posta Adresi',
+              controller: forgotEmail,
+              prefixIcon: Icons.email_outlined,
+            ),
+            if (isInProgress) const LinearProgressIndicator(),
+            const SizedBox(height: 16),
+            Center(
+              child: SizedBox(
+                height: 38,
+                width: 220,
+                child: ElevatedButton(
+                  onPressed: isInProgress ? null : onForgotPasswordSubmit,
+                  child: const Text('Sıfırlama Bağlantısı Gönder', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                ),
+              ),
+            ),
+            const SizedBox(height: 6),
+            TextButton(
+              onPressed: () => setState(() {
+                forgotError = null;
+                currentView = _AuthView.login;
+              }),
+              child: const Text('Giriş Ekranına Dön'),
+            ),
+          ],
+        );
+      } else {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            const SizedBox(height: 8.0),
+            LoginWidgetUserPass(
+              username: username,
+              pass: password,
+              usernameMsg: usernameMsg,
+              passMsg: passwordMsg,
+              isInProgress: isInProgress,
+              curOP: curOP,
+              onLogin: onLogin,
+              onGoToRegister: () => setState(() {
+                registerError = null;
+                currentView = _AuthView.register;
+              }),
+              onGoToForgotPassword: () => setState(() {
+                forgotError = null;
+                currentView = _AuthView.forgotPassword;
+              }),
+              userFocusNode: userFocusNode,
+            ),
+            thirdAuthWidget(),
+          ],
+        );
+      }
+    }
+
     return CustomAlertDialog(
       title: title,
       titlePadding: titlePadding,
-      contentBoxConstraints: BoxConstraints(minWidth: 400),
-      content: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          const SizedBox(
-            height: 8.0,
-          ),
-          LoginWidgetUserPass(
-            username: username,
-            pass: password,
-            usernameMsg: usernameMsg,
-            passMsg: passwordMsg,
-            isInProgress: isInProgress,
-            curOP: curOP,
-            onLogin: onLogin,
-            userFocusNode: userFocusNode,
-          ),
-          thirdAuthWidget(),
-        ],
-      ),
+      contentBoxConstraints: const BoxConstraints(minWidth: 420, maxWidth: 460),
+      content: buildCurrentBody(),
       onCancel: onDialogCancel,
-      onSubmit: onLogin,
+      onSubmit: () {
+        if (currentView == _AuthView.login) {
+          onLogin();
+        } else if (currentView == _AuthView.register) {
+          onRegisterSubmit();
+        } else if (currentView == _AuthView.forgotPassword) {
+          onForgotPasswordSubmit();
+        }
+      },
     );
   }).whenComplete(oidcAuth.close);
 

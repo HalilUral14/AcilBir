@@ -442,9 +442,9 @@ class _DesktopHomePageState extends State<DesktopHomePage>
   Widget buildHelpCards(String updateUrl) {
     if (updateUrl.isNotEmpty && !isCardClosed) {
       final isToUpdate = (isWindows || isMacOS) && bind.mainIsInstalled();
-      String btnText = isToUpdate ? 'Update' : 'Download';
+      String btnText = isToUpdate ? 'Güncelle' : 'İndir';
       GestureTapCallback onPressed = () async {
-        final Uri url = Uri.parse('https://rustdesk.com/download');
+        final Uri url = Uri.parse('https://acilbir.com');
         await launchUrl(url);
       };
       if (isToUpdate) {
@@ -453,14 +453,14 @@ class _DesktopHomePageState extends State<DesktopHomePage>
         };
       }
       return buildInstallCard(
-          "Status",
-          "${translate("new-version-of-{${bind.mainGetAppNameSync()}}-tip")} (${bind.mainGetNewVersion()}).",
+          "Durum",
+          "AcilBir yeni bir sürüme sahip: (${bind.mainGetNewVersion()}).",
           btnText,
           onPressed,
           closeButton: true,
-          help: isToUpdate ? 'Changelog' : null,
+          help: isToUpdate ? 'Sürüm Notları' : null,
           link: isToUpdate
-              ? 'https://github.com/rustdesk/rustdesk/releases/tag/${bind.mainGetNewVersion()}'
+              ? 'https://github.com/ABT-BILGISAYAR-LTD-STI/rdgen/releases/latest'
               : null);
     }
     if (systemError.isNotEmpty) {
