@@ -431,6 +431,7 @@ class _TicketListPageState extends State<TicketListPage> {
                               final status = t['status'] is int ? t['status'] : int.tryParse(t['status']?.toString() ?? '1') ?? 1;
                               final priority = t['priority'] is int ? t['priority'] : int.tryParse(t['priority']?.toString() ?? '2') ?? 2;
                               final categoryName = t['category']?['name'] ?? t['category_name'] ?? 'Genel';
+                              final clientUsername = t['user']?['username'] ?? t['username'];
                               final updatedAt = t['updated_at']?.toString().split('T').first ?? '';
 
                               return Card(
@@ -494,6 +495,20 @@ class _TicketListPageState extends State<TicketListPage> {
                                         const SizedBox(height: 10),
                                         Row(
                                           children: [
+                                            if (clientUsername != null && clientUsername.toString().isNotEmpty) ...[
+                                              Container(
+                                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.indigo.withOpacity(0.1),
+                                                  borderRadius: BorderRadius.circular(4),
+                                                ),
+                                                child: Text(
+                                                  'Müşteri: $clientUsername',
+                                                  style: const TextStyle(fontSize: 11, color: Colors.indigo, fontWeight: FontWeight.w500),
+                                                ),
+                                              ),
+                                              const SizedBox(width: 6),
+                                            ],
                                             Container(
                                               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                               decoration: BoxDecoration(
@@ -850,8 +865,8 @@ class _TicketDetailPageState extends State<TicketDetailPage> {
   void initState() {
     super.initState();
     _fetchDetail();
-    // Auto refresh chat every 15s
-    _autoRefreshTimer = Timer.periodic(const Duration(seconds: 15), (_) {
+    // Auto refresh chat every 5s for near-instant message updates
+    _autoRefreshTimer = Timer.periodic(const Duration(seconds: 5), (_) {
       if (mounted && !_isLoading && !_isSendingReply) {
         _fetchDetail(silent: true);
       }
@@ -1164,6 +1179,13 @@ class _TicketDetailPageState extends State<TicketDetailPage> {
                       ),
                       child: Row(
                         children: [
+                          if (_ticketData?['user']?['username'] != null) ...[
+                            Text(
+                              'Müşteri: ${_ticketData!['user']['username']}',
+                              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.indigo),
+                            ),
+                            const SizedBox(width: 12),
+                          ],
                           Text(
                             'Kategori: ${_ticketData?['category']?['name'] ?? 'Genel'}',
                             style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
