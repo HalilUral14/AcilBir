@@ -806,6 +806,7 @@ class _TicketCreateDialogState extends State<TicketCreateDialog> {
   final _subjectController = TextEditingController();
   final _contentController = TextEditingController();
   final _rustdeskIdController = TextEditingController();
+  final _targetUsernameController = TextEditingController();
 
   List<TicketCategory> _categories = [];
   int? _selectedCategoryId;
@@ -825,6 +826,7 @@ class _TicketCreateDialogState extends State<TicketCreateDialog> {
     _subjectController.dispose();
     _contentController.dispose();
     _rustdeskIdController.dispose();
+    _targetUsernameController.dispose();
     super.dispose();
   }
 
@@ -886,6 +888,10 @@ class _TicketCreateDialogState extends State<TicketCreateDialog> {
       if (_selectedCategoryId != null && _selectedCategoryId! > 0) {
         body['category_id'] = _selectedCategoryId;
       }
+      final targetUser = _targetUsernameController.text.trim();
+      if (targetUser.isNotEmpty) {
+        body['username'] = targetUser;
+      }
 
       final response = await http.post(
         Uri.parse('$url/api/ticket/create'),
@@ -902,7 +908,8 @@ class _TicketCreateDialogState extends State<TicketCreateDialog> {
         Get.back(result: true);
         showToast('Destek talebiniz başarıyla oluşturuldu.');
       } else {
-        throw data['msg'] ?? data['error'] ?? 'Talep oluşturulamadı.';
+        final serverMsg = data['msg'] ?? data['message'] ?? data['error'] ?? 'Talep oluşturulamadı.';
+        throw serverMsg;
       }
     } catch (e) {
       setState(() {
@@ -919,10 +926,12 @@ class _TicketCreateDialogState extends State<TicketCreateDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final bool isAdmin = gFFI.userModel.isAdmin.value;
+
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Container(
-        width: 500,
+        width: 520,
         padding: const EdgeInsets.all(24),
         child: SingleChildScrollView(
           child: Form(
@@ -934,9 +943,24 @@ class _TicketCreateDialogState extends State<TicketCreateDialog> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
-                      'Yeni Destek Talebi',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    Row(
+                      children: [
+                        const Text(
+                          'Yeni Destek Talebi',
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
+                        if (isAdmin) ...[
+                          const SizedBox(width: 8),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Colors.purple.withOpacity(0.15),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: const Text('YÖNETİCİ', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.purple)),
+                          ),
+                        ],
+                      ],
                     ),
                     IconButton(
                       icon: const Icon(Icons.close, size: 20),
@@ -955,8 +979,55 @@ class _TicketCreateDialogState extends State<TicketCreateDialog> {
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(color: Colors.red.withOpacity(0.3)),
                     ),
-                    child: Text(_errorMessage!, style: const TextStyle(color: Colors.red, fontSize: 12)),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.error_outline, size: 18, color: Colors.red),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(_errorMessage!, style: const TextStyle(color: Colors.red, fontSize: 12, fontWeight: FontWeight.w500)),
+                        ),
+                      ],
+                    ),
                   ),
+
+                // Admin Option: Open on behalf of Customer
+                if (isAdmin) ...[
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.purple.withOpacity(0.06),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.purple.withOpacity(0.2)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: const [
+                            Icon(Icons.admin_panel_settings, size: 16, color: Colors.purple),
+                            SizedBox(width: 6),
+                            Text(
+                              'Müşteri Adına Bilet Oluştur (Yönetici)',
+                              style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.purple),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        TextFormField(
+                          controller: _targetUsernameController,
+                          decoration: const InputDecoration(
+                            labelText: 'Hedef Müşteri Kullanıcı Adı (İsteğe Bağlı)',
+                            hintText: 'Boş bırakılırsa kendi adınıza bilet açılır',
+                            prefixIcon: Icon(Icons.person_search, size: 18),
+                            isDense: true,
+                            border: OutlineInputBorder(),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                ],
 
                 // Konu
                 TextFormField(
@@ -966,7 +1037,11 @@ class _TicketCreateDialogState extends State<TicketCreateDialog> {
                     hintText: 'Örn: Bağlantı kesilme sorunu',
                     border: OutlineInputBorder(),
                   ),
-                  validator: (v) => (v == null || v.trim().isEmpty) ? 'Lütfen konu girin' : null,
+                  validator: (v) {
+                    if (v == null || v.trim().isEmpty) return 'Lütfen konu girin';
+                    if (v.trim().length < 3) return 'Konu en az 3 karakter olmalıdır';
+                    return null;
+                  },
                 ),
                 const SizedBox(height: 14),
 
@@ -1006,10 +1081,10 @@ class _TicketCreateDialogState extends State<TicketCreateDialog> {
                           border: OutlineInputBorder(),
                         ),
                         items: const [
-                          DropdownMenuItem(value: 1, child: Text('1 - Düşük')),
-                          DropdownMenuItem(value: 2, child: Text('2 - Normal')),
-                          DropdownMenuItem(value: 3, child: Text('3 - Yüksek')),
-                          DropdownMenuItem(value: 4, child: Text('4 - Acil')),
+                          DropdownMenuItem(value: 0, child: Text('0 - Düşük')),
+                          DropdownMenuItem(value: 1, child: Text('1 - Normal')),
+                          DropdownMenuItem(value: 2, child: Text('2 - Yüksek')),
+                          DropdownMenuItem(value: 3, child: Text('3 - Acil')),
                         ],
                         onChanged: (val) {
                           if (val != null) {
@@ -1077,7 +1152,11 @@ class _TicketCreateDialogState extends State<TicketCreateDialog> {
                     border: OutlineInputBorder(),
                     alignLabelWithHint: true,
                   ),
-                  validator: (v) => (v == null || v.trim().isEmpty) ? 'Lütfen açıklama girin' : null,
+                  validator: (v) {
+                    if (v == null || v.trim().isEmpty) return 'Lütfen açıklama girin';
+                    if (v.trim().length < 5) return 'Açıklama en az 5 karakter olmalıdır';
+                    return null;
+                  },
                 ),
                 const SizedBox(height: 20),
 
