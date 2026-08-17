@@ -2060,7 +2060,7 @@ Future<bool> restoreWindowPosition(WindowType type,
   }
   pos ??= bind.getLocalFlutterOption(k: windowFramePrefix + type.name);
 
-  var lpos = LastWindowPosition.loadFromString(pos);
+  var lpos = LastWindowPosition.loadFromString(pos ?? '');
   if (lpos == null) {
     debugPrint("No window position saved, trying to center the window.");
     switch (type) {
@@ -4082,18 +4082,63 @@ void earlyAssert() {
 
 void checkUpdate() {
   if (!isWeb) {
-    if (!bind.isCustomClient()) {
-      platformFFI.registerEventHandler(
-          kCheckSoftwareUpdateFinish, kCheckSoftwareUpdateFinish,
-          (Map<String, dynamic> evt) async {
-        if (evt['url'] is String) {
-          stateGlobal.updateUrl.value = evt['url'];
+    platformFFI.registerEventHandler(
+        kCheckSoftwareUpdateFinish, kCheckSoftwareUpdateFinish,
+        (Map<String, dynamic> evt) async {
+      if (evt['url'] is String) {
+        stateGlobal.updateUrl.value = evt['url'];
+      }
+    });
+    Timer(const Duration(seconds: 1), () async {
+      bind.mainGetSoftwareUpdateUrl();
+    });
+
+    // Otomatik platforma duyarlı güncelleme kontrolü (Windows, macOS, Linux, Android)
+    Timer(const Duration(seconds: 2), () async {
+      try {
+        String platform = 'windows';
+        if (isMacOS) {
+          platform = 'macos';
+        } else if (isLinux) {
+          platform = 'linux';
+        } else if (isAndroid) {
+          platform = 'android';
+        } else if (isIOS) {
+          platform = 'ios';
         }
-      });
-      Timer(const Duration(seconds: 1), () async {
-        bind.mainGetSoftwareUpdateUrl();
-      });
+
+        final res = await http.get(Uri.parse('https://acilbir.com/api/software/releases/latest/$platform'));
+        if (res.statusCode == 200 && res.body.isNotEmpty) {
+          final data = jsonDecode(res.body);
+          if (data is Map && data['url'] != null && data['version'] != null) {
+            final String remoteVer = data['version'].toString();
+            final String downloadUrl = data['url'].toString();
+            final String currentVer = await bind.mainGetVersion();
+
+            if (_isNewerVersion(remoteVer, currentVer)) {
+              debugPrint("AcilBir: $platform için yeni sürüm bulundu: v$remoteVer ($downloadUrl)");
+              stateGlobal.updateUrl.value = downloadUrl;
+            }
+          }
+        }
+      } catch (e) {
+        debugPrint("AcilBir: Güncelleme kontrolü bildirimi: $e");
+      }
+    });
+  }
+}
+
+bool _isNewerVersion(String remote, String current) {
+  try {
+    List<int> r = remote.replaceAll(RegExp(r'[^0-9.]'), '').split('.').map(int.parse).toList();
+    List<int> c = current.replaceAll(RegExp(r'[^0-9.]'), '').split('.').map(int.parse).toList();
+    for (int i = 0; i < r.length && i < c.length; i++) {
+      if (r[i] > c[i]) return true;
+      if (r[i] < c[i]) return false;
     }
+    return r.length > c.length;
+  } catch (_) {
+    return remote != current && remote.isNotEmpty;
   }
 }
 
