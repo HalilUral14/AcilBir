@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:flutter_hbb/common.dart';
@@ -1197,6 +1198,22 @@ class _TicketDetailPageState extends State<TicketDetailPage> {
                               style: const TextStyle(fontSize: 12, color: Colors.blueGrey),
                             ),
                           const Spacer(),
+                          if (_ticketData?['rustdesk_id'] != null && _ticketData!['rustdesk_id'].toString().trim().isNotEmpty) ...[
+                            ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.teal.shade700,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              ),
+                              icon: const Icon(Icons.desktop_windows_rounded, size: 16),
+                              label: const Text('Uzaktan Bağlan', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11)),
+                              onPressed: () {
+                                final remoteId = _ticketData!['rustdesk_id'].toString().trim();
+                                connect(context, remoteId);
+                              },
+                            ),
+                            const SizedBox(width: 8),
+                          ],
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                             decoration: BoxDecoration(
@@ -1261,6 +1278,27 @@ class _TicketDetailPageState extends State<TicketDetailPage> {
                         ),
                         child: Row(
                           children: [
+                            IconButton(
+                              tooltip: 'Sistem Teşhis Bilgisi Ekle',
+                              icon: const Icon(Icons.computer_outlined, color: Colors.blueGrey),
+                              onPressed: () async {
+                                final myId = await bind.mainGetMyId();
+                                final osName = Platform.operatingSystem;
+                                final osVer = Platform.operatingSystemVersion;
+                                final hostname = Platform.localHostname;
+                                final cpuCount = Platform.numberOfProcessors;
+
+                                final diag = '\n📋 [Sistem Teşhisi]\n'
+                                    '• Cihaz: $hostname\n'
+                                    '• İşletim Sistemi: $osName ($osVer)\n'
+                                    '• CPU Çekirdek: $cpuCount\n'
+                                    '• AcilBir ID: $myId\n';
+
+                                setState(() {
+                                  _replyController.text = (_replyController.text.trim() + ' ' + diag).trim();
+                                });
+                              },
+                            ),
                             Expanded(
                               child: TextField(
                                 controller: _replyController,
