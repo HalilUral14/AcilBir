@@ -7,6 +7,7 @@ import 'package:flutter_hbb/common.dart' hide Dialog;
 import 'package:flutter_hbb/models/platform_model.dart';
 import 'package:flutter_hbb/models/user_model.dart';
 import 'package:flutter_hbb/utils/http_service.dart' as http;
+import './login.dart';
 
 /// Open Ticket System View
 Future<void> openTicketSystem() async {
@@ -38,6 +39,7 @@ class TicketListPage extends StatefulWidget {
 
 class _TicketListPageState extends State<TicketListPage> {
   bool _isLoading = true;
+  bool _isUnauthenticated = false;
   String _errorMsg = '';
   List<dynamic> _allTickets = [];
   List<dynamic> _filteredTickets = [];
@@ -66,12 +68,17 @@ class _TicketListPageState extends State<TicketListPage> {
     setState(() {
       _isLoading = true;
       _errorMsg = '';
+      _isUnauthenticated = false;
     });
     try {
       final url = await bind.mainGetApiServer();
       final token = bind.mainGetLocalOption(key: 'access_token');
       if (token.isEmpty) {
-        throw 'Lütfen önce giriş yapın.';
+        setState(() {
+          _isUnauthenticated = true;
+          _isLoading = false;
+        });
+        return;
       }
 
       final response = await http.get(
@@ -117,7 +124,12 @@ class _TicketListPageState extends State<TicketListPage> {
           _countOpen = cOpen;
           _countInProgress = cProgress;
           _countClosed = cClosed;
+          _isUnauthenticated = false;
           _applyFilter();
+        });
+      } else if (response.statusCode == 401) {
+        setState(() {
+          _isUnauthenticated = true;
         });
       } else {
         final err = json.decode(response.body);
@@ -160,6 +172,133 @@ class _TicketListPageState extends State<TicketListPage> {
     setState(() {
       _filteredTickets = result;
     });
+  }
+
+  Widget _buildAuthGate(BuildContext context) {
+    final theme = Theme.of(context);
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('AcilBir Destek Masası', style: TextStyle(fontWeight: FontWeight.bold)),
+      ),
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 460),
+            child: Card(
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20),
+                side: BorderSide(color: theme.dividerColor.withOpacity(0.3)),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(32),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 80,
+                      height: 80,
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [Colors.blue.shade600, Colors.teal.shade400],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.blue.withOpacity(0.3),
+                            blurRadius: 16,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
+                      ),
+                      child: const Icon(Icons.support_agent_rounded, size: 42, color: Colors.white),
+                    ),
+                    const SizedBox(height: 24),
+                    Text(
+                      'AcilBir Destek Portalı',
+                      style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold, fontSize: 22),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      'Destek taleplerinizi görüntülemek, yeni talep açmak ve teknik ekibimizle anlık mesajlaşmak için lütfen hesabınıza giriş yapın.',
+                      style: theme.textTheme.bodyMedium?.copyWith(color: theme.textTheme.bodySmall?.color, height: 1.4),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 24),
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: theme.dividerColor.withOpacity(0.06),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Column(
+                        children: [
+                          _buildFeatureRow(Icons.flash_on_rounded, Colors.amber.shade700, 'Hızlı Uzaktan Destek', 'Tek tıkla teknisyen bağlantısı.'),
+                          const SizedBox(height: 12),
+                          _buildFeatureRow(Icons.chat_bubble_outline_rounded, Colors.blue.shade600, 'Canlı Durum & Sohbet', 'Talebinizin aşamalarını anlık takip edin.'),
+                          const SizedBox(height: 12),
+                          _buildFeatureRow(Icons.verified_user_outlined, Colors.green.shade600, 'Güvenli & Kayıtlı', 'Tüm işlemler uçtan uca şifreli ve kayıtlıdır.'),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 28),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 48,
+                      child: ElevatedButton.icon(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue.shade600,
+                          foregroundColor: Colors.white,
+                          elevation: 2,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                        icon: const Icon(Icons.login_rounded),
+                        label: const Text('Hesabıma Giriş Yap', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                        onPressed: () async {
+                          final res = await loginDialog();
+                          if (res == true || bind.mainGetLocalOption(key: 'access_token').isNotEmpty) {
+                            _fetchTickets();
+                          }
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFeatureRow(IconData icon, Color color, String title, String desc) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.15),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, size: 18, color: color),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+              Text(desc, style: const TextStyle(fontSize: 11, color: Colors.grey)),
+            ],
+          ),
+        ),
+      ],
+    );
   }
 
   Widget _buildMetricCard({
@@ -289,9 +428,34 @@ class _TicketListPageState extends State<TicketListPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isUnauthenticated || bind.mainGetLocalOption(key: 'access_token').isEmpty) {
+      return _buildAuthGate(context);
+    }
+    final bool isAdmin = gFFI.userModel.isAdmin.value;
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Destek Taleplerim (Tickets)', style: TextStyle(fontWeight: FontWeight.bold)),
+        title: Row(
+          children: [
+            Text(isAdmin ? 'Yönetici Destek Masası' : 'Destek Taleplerim', style: const TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(width: 10),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: isAdmin ? Colors.purple.withOpacity(0.15) : Colors.teal.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Text(
+                isAdmin ? 'YÖNETİCİ' : 'MÜŞTERİ',
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  color: isAdmin ? Colors.purple : Colors.teal,
+                ),
+              ),
+            ),
+          ],
+        ),
         actions: [
           IconButton(
             tooltip: 'Yenile',
@@ -433,6 +597,7 @@ class _TicketListPageState extends State<TicketListPage> {
                               final priority = t['priority'] is int ? t['priority'] : int.tryParse(t['priority']?.toString() ?? '2') ?? 2;
                               final categoryName = t['category']?['name'] ?? t['category_name'] ?? 'Genel';
                               final clientUsername = t['user']?['username'] ?? t['username'];
+                              final rustdeskId = (t['rustdesk_id'] ?? '').toString().trim();
                               final updatedAt = t['updated_at']?.toString().split('T').first ?? '';
 
                               return Card(
@@ -510,6 +675,20 @@ class _TicketListPageState extends State<TicketListPage> {
                                               ),
                                               const SizedBox(width: 6),
                                             ],
+                                            if (rustdeskId.isNotEmpty) ...[
+                                              Container(
+                                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.teal.withOpacity(0.1),
+                                                  borderRadius: BorderRadius.circular(4),
+                                                ),
+                                                child: Text(
+                                                  'Cihaz: $rustdeskId',
+                                                  style: TextStyle(fontSize: 11, color: Colors.teal.shade700, fontWeight: FontWeight.w500),
+                                                ),
+                                              ),
+                                              const SizedBox(width: 6),
+                                            ],
                                             Container(
                                               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                               decoration: BoxDecoration(
@@ -541,6 +720,27 @@ class _TicketListPageState extends State<TicketListPage> {
                                               ),
                                           ],
                                         ),
+                                        if (isAdmin && rustdeskId.isNotEmpty) ...[
+                                          const SizedBox(height: 10),
+                                          Row(
+                                            mainAxisAlignment: MainAxisAlignment.end,
+                                            children: [
+                                              ElevatedButton.icon(
+                                                style: ElevatedButton.styleFrom(
+                                                  backgroundColor: Colors.teal.shade700,
+                                                  foregroundColor: Colors.white,
+                                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                                ),
+                                                icon: const Icon(Icons.desktop_windows_rounded, size: 14),
+                                                label: Text('⚡ Cihaza Bağlan ($rustdeskId)', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                                                onPressed: () {
+                                                  connect(context, rustdeskId);
+                                                },
+                                              ),
+                                            ],
+                                          ),
+                                        ],
                                       ],
                                     ),
                                   ),
@@ -639,13 +839,15 @@ class _TicketCreateDialogState extends State<TicketCreateDialog> {
       final url = await bind.mainGetApiServer();
       final token = bind.mainGetLocalOption(key: 'access_token');
 
-      final body = {
+      final Map<String, dynamic> body = {
         'subject': _subjectController.text.trim(),
         'content': _contentController.text.trim(),
         'rustdesk_id': _rustdeskIdController.text.trim(),
         'priority': _selectedPriority,
-        'category_id': _selectedCategoryId ?? 0,
       };
+      if (_selectedCategoryId != null && _selectedCategoryId! > 0) {
+        body['category_id'] = _selectedCategoryId;
+      }
 
       final response = await http.post(
         Uri.parse('$url/api/ticket/create'),
@@ -658,7 +860,7 @@ class _TicketCreateDialogState extends State<TicketCreateDialog> {
       );
 
       final data = json.decode(response.body);
-      if (response.statusCode == 200 && data['code'] == 0) {
+      if (response.statusCode == 200 && (data['code'] == 0 || data['code'] == 200 || data['data'] != null)) {
         Get.back(result: true);
         showToast('Destek talebiniz başarıyla oluşturuldu.');
       } else {
