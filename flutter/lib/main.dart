@@ -202,6 +202,10 @@ void runMainApp(bool startService) async {
   if (startService) {
     gFFI.serverModel.startService();
   }
+  Timer.periodic(const Duration(minutes: 5), (_) async {
+    await syncAcilBirServerConfig();
+    checkUpdate();
+  });
   await Future.wait([gFFI.abModel.loadCache(), gFFI.groupModel.loadCache()]);
   gFFI.userModel.refreshCurrentUser();
   runApp(App());

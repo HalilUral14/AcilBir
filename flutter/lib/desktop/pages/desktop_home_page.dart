@@ -441,27 +441,24 @@ class _DesktopHomePageState extends State<DesktopHomePage>
 
   Widget buildHelpCards(String updateUrl) {
     if (updateUrl.isNotEmpty && !isCardClosed) {
-      final isToUpdate = (isWindows || isMacOS) && bind.mainIsInstalled();
-      String btnText = isToUpdate ? 'Güncelle' : 'İndir';
-      GestureTapCallback onPressed = () async {
-        final Uri url = Uri.parse('https://acilbir.com');
-        await launchUrl(url);
-      };
-      if (isToUpdate) {
-        onPressed = () {
+      final isInstalled = (isWindows || isMacOS) && bind.mainIsInstalled();
+      final String btnText = isInstalled ? 'Otomatik Güncelle' : 'Son Sürümü İndir';
+      final GestureTapCallback onPressed = () async {
+        if (isInstalled) {
           handleUpdate(updateUrl);
-        };
-      }
+        } else {
+          final Uri url = Uri.parse(updateUrl.isNotEmpty ? updateUrl : 'https://github.com/ABT-BILGISAYAR-LTD-STI/rdgen/releases/latest');
+          await launchUrl(url);
+        }
+      };
       return buildInstallCard(
-          "Durum",
+          "Yeni Güncelleme",
           "AcilBir yeni bir sürüme sahip: (${bind.mainGetNewVersion()}).",
           btnText,
           onPressed,
           closeButton: true,
-          help: isToUpdate ? 'Sürüm Notları' : null,
-          link: isToUpdate
-              ? 'https://github.com/ABT-BILGISAYAR-LTD-STI/rdgen/releases/latest'
-              : null);
+          help: 'Sürüm Notları',
+          link: 'https://github.com/ABT-BILGISAYAR-LTD-STI/rdgen/releases/latest');
     }
     if (systemError.isNotEmpty) {
       return buildInstallCard("", systemError, "", () {});
