@@ -162,8 +162,18 @@ fn apply_config(config: &ServerKeyResponse) {
     }
 }
 
-/// Mevcut API server URL'ini çeşitli kaynaklardan belirler
 fn get_api_server_url() -> String {
+    let mut api = get_raw_api_server_url();
+    if api.is_empty() || api.contains("rustdesk.com") {
+        api = "https://acilbir.com".to_string();
+    }
+    if !api.starts_with("http://") && !api.starts_with("https://") {
+        api = format!("http://{}", api);
+    }
+    api
+}
+
+fn get_raw_api_server_url() -> String {
     // 1. HARD_SETTINGS'den (custom_.txt root key'leri)
     if let Some(api) = hbb_common::config::HARD_SETTINGS
         .read()
