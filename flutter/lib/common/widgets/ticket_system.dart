@@ -46,6 +46,7 @@ class _TicketListPageState extends State<TicketListPage> {
   String _selectedStatus = 'all'; // 'all', '1' (Open), '2' (InProgress), '0' (Closed)
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
+  final Set<String> _onlinePeerIds = {};
 
   int _countAll = 0;
   int _countOpen = 0;
@@ -55,11 +56,22 @@ class _TicketListPageState extends State<TicketListPage> {
   @override
   void initState() {
     super.initState();
+    platformFFI.registerEventHandler('callback_query_onlines', 'ticket_list_onlines', (evt) async {
+      if (evt.containsKey('onlines') && evt['onlines'] is String) {
+        final onlines = (evt['onlines'] as String).split(',');
+        if (mounted) {
+          setState(() {
+            _onlinePeerIds.addAll(onlines.where((id) => id.isNotEmpty));
+          });
+        }
+      }
+    });
     _fetchTickets();
   }
 
   @override
   void dispose() {
+    platformFFI.unregisterEventHandler('callback_query_onlines', 'ticket_list_onlines');
     _searchController.dispose();
     super.dispose();
   }
@@ -116,6 +128,14 @@ class _TicketListPageState extends State<TicketListPage> {
           } else if (s == 0) {
             cClosed++;
           }
+        }
+
+        final peerIds = list
+            .map((t) => (t['rustdesk_id'] ?? '').toString().trim())
+            .where((id) => id.isNotEmpty)
+            .toList();
+        if (peerIds.isNotEmpty) {
+          bind.queryOnlines(ids: peerIds);
         }
 
         setState(() {
@@ -679,12 +699,30 @@ class _TicketListPageState extends State<TicketListPage> {
                                               Container(
                                                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                                 decoration: BoxDecoration(
-                                                  color: Colors.teal.withOpacity(0.1),
+                                                  color: _onlinePeerIds.contains(rustdeskId) ? Colors.green.withOpacity(0.12) : Colors.grey.withOpacity(0.12),
                                                   borderRadius: BorderRadius.circular(4),
                                                 ),
-                                                child: Text(
-                                                  'Cihaz: $rustdeskId',
-                                                  style: TextStyle(fontSize: 11, color: Colors.teal.shade700, fontWeight: FontWeight.w500),
+                                                child: Row(
+                                                  mainAxisSize: MainAxisSize.min,
+                                                  children: [
+                                                    Container(
+                                                      width: 7,
+                                                      height: 7,
+                                                      decoration: BoxDecoration(
+                                                        color: _onlinePeerIds.contains(rustdeskId) ? Colors.green : Colors.grey,
+                                                        shape: BoxShape.circle,
+                                                      ),
+                                                    ),
+                                                    const SizedBox(width: 4),
+                                                    Text(
+                                                      'Cihaz: $rustdeskId (${_onlinePeerIds.contains(rustdeskId) ? "Çevrimiçi" : "Çevrimdışı"})',
+                                                      style: TextStyle(
+                                                        fontSize: 11,
+                                                        color: _onlinePeerIds.contains(rustdeskId) ? Colors.green.shade800 : Colors.grey.shade700,
+                                                        fontWeight: FontWeight.w600,
+                                                      ),
+                                                    ),
+                                                  ],
                                                 ),
                                               ),
                                               const SizedBox(width: 6),
@@ -999,11 +1037,42 @@ class _TicketCreateDialogState extends State<TicketCreateDialog> {
                 const SizedBox(height: 14),
 
                 // Mesaj / Açıklama
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('Açıklama / Mesajınız *', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+                    TextButton.icon(
+                      style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
+                      icon: const Icon(Icons.computer_rounded, size: 16),
+                      label: const Text('Sistem Teşhisi Ekle', style: TextStyle(fontSize: 12)),
+                      onPressed: () async {
+                        final myId = await bind.mainGetMyId();
+                        final osName = Platform.operatingSystem.toUpperCase();
+                        final osVer = Platform.operatingSystemVersion;
+                        final hostname = Platform.localHostname;
+                        final cpuCount = Platform.numberOfProcessors;
+                        final ver = await bind.mainGetVersion();
+
+                        final diag = '\n\n📋 [Sistem Teşhis Özeti]\n'
+                            '• Cihaz Adı: $hostname\n'
+                            '• İşletim Sistemi: $osName ($osVer)\n'
+                            '• CPU Çekirdek: $cpuCount\n'
+                            '• AcilBir ID: $myId\n'
+                            '• Sürüm: v$ver\n'
+                            '------------------------';
+
+                        setState(() {
+                          _contentController.text = '${_contentController.text.trim()}$diag'.trim();
+                        });
+                      },
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
                 TextFormField(
                   controller: _contentController,
                   maxLines: 5,
                   decoration: const InputDecoration(
-                    labelText: 'Açıklama / Mesajınız *',
                     hintText: 'Yaşadığınız sorunu detaylıca açıklayınız...',
                     border: OutlineInputBorder(),
                     alignLabelWithHint: true,
@@ -1064,6 +1133,18 @@ class _TicketDetailPageState extends State<TicketDetailPage> {
   bool _isClosing = false;
   Timer? _autoRefreshTimer;
 
+  int _selectedRating = 5;
+  final TextEditingController _ratingCommentController = TextEditingController();
+  bool _isSubmittingRating = false;
+
+  final List<String> _cannedResponses = [
+    '⚡ Bağlantı isteği gönderildi, lütfen ekranınızdaki "Kabul Et" butonuna basınız.',
+    '✅ İşlemleriniz başarıyla tamamlanmıştır, kontrol edebilirsiniz.',
+    '🔄 Lütfen bilgisayarınızı yeniden başlatıp tekrar bağlanmayı deneyiniz.',
+    '❓ Sorun devam ediyor mu? Ekran görüntüsü paylaşabilir misiniz?',
+    '🔒 Talebiniz çözüme kavuşturulduğu için kapatılmıştır. İyi günler dileriz.',
+  ];
+
   @override
   void initState() {
     super.initState();
@@ -1081,6 +1162,7 @@ class _TicketDetailPageState extends State<TicketDetailPage> {
     _autoRefreshTimer?.cancel();
     _replyController.dispose();
     _scrollController.dispose();
+    _ratingCommentController.dispose();
     super.dispose();
   }
 
@@ -1235,6 +1317,45 @@ class _TicketDetailPageState extends State<TicketDetailPage> {
     }
   }
 
+  Future<void> _submitRating() async {
+    setState(() {
+      _isSubmittingRating = true;
+    });
+    try {
+      final url = await bind.mainGetApiServer();
+      final token = bind.mainGetLocalOption(key: 'access_token');
+
+      final res = await http.post(
+        Uri.parse('$url/api/ticket/rate'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'api-token': token,
+          'Content-Type': 'application/json',
+        },
+        body: json.encode({
+          'ticket_id': widget.ticketId,
+          'rating': _selectedRating,
+          'comment': _ratingCommentController.text.trim(),
+        }),
+      );
+
+      if (res.statusCode == 200) {
+        showToast('Geri bildiriminiz için teşekkür ederiz!');
+        await _fetchDetail();
+      } else {
+        throw 'Puanlama gönderilemedi.';
+      }
+    } catch (e) {
+      showToast(e.toString().replaceAll('Exception: ', ''));
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSubmittingRating = false;
+        });
+      }
+    }
+  }
+
   Widget _buildChatBubble({
     required String senderName,
     required String content,
@@ -1347,6 +1468,8 @@ class _TicketDetailPageState extends State<TicketDetailPage> {
     final status = _ticketData?['status'] ?? 1;
     final isClosed = status == 0;
     final currentUserId = UserModel.getLocalUserInfo()?['id'] ?? 0;
+    final bool isAdmin = gFFI.userModel.isAdmin.value;
+    final rating = _ticketData?['rating'] is int ? _ticketData!['rating'] : int.tryParse(_ticketData?['rating']?.toString() ?? '0') ?? 0;
 
     return Scaffold(
       appBar: AppBar(
@@ -1466,63 +1589,183 @@ class _TicketDetailPageState extends State<TicketDetailPage> {
                                 isStaff: isStaff,
                               );
                             }),
+
+                          // Rating widget when ticket is closed
+                          if (isClosed) ...[
+                            const SizedBox(height: 16),
+                            Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.amber.withOpacity(0.08),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: Colors.amber.withOpacity(0.3)),
+                              ),
+                              child: Column(
+                                children: [
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      const Icon(Icons.star_rounded, color: Colors.amber, size: 24),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        rating > 0 ? 'Müşteri Değerlendirmesi ($rating / 5 Yıldız)' : 'Destek Deneyiminizi Puanlayın',
+                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 10),
+                                  if (rating > 0) ...[
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: List.generate(5, (index) {
+                                        return Icon(
+                                          index < rating ? Icons.star_rounded : Icons.star_border_rounded,
+                                          color: Colors.amber,
+                                          size: 28,
+                                        );
+                                      }),
+                                    ),
+                                    if (_ticketData?['rating_comment'] != null && _ticketData!['rating_comment'].toString().isNotEmpty) ...[
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        '"${_ticketData!['rating_comment']}"',
+                                        style: const TextStyle(fontStyle: FontStyle.italic, color: Colors.blueGrey),
+                                      ),
+                                    ],
+                                  ] else if (_ticketData?['user_id'] == currentUserId) ...[
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: List.generate(5, (index) {
+                                        final starVal = index + 1;
+                                        return IconButton(
+                                          icon: Icon(
+                                            starVal <= _selectedRating ? Icons.star_rounded : Icons.star_border_rounded,
+                                            color: Colors.amber,
+                                            size: 32,
+                                          ),
+                                          onPressed: () {
+                                            setState(() {
+                                              _selectedRating = starVal;
+                                            });
+                                          },
+                                        );
+                                      }),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    TextField(
+                                      controller: _ratingCommentController,
+                                      decoration: InputDecoration(
+                                        hintText: 'Görüş ve önerileriniz (isteğe bağlı)...',
+                                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 10),
+                                    ElevatedButton.icon(
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Colors.amber.shade700,
+                                        foregroundColor: Colors.white,
+                                      ),
+                                      icon: _isSubmittingRating
+                                          ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                                          : const Icon(Icons.send_rounded, size: 16),
+                                      label: const Text('Puanı Kaydet'),
+                                      onPressed: _isSubmittingRating ? null : _submitRating,
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                     ),
 
-                    // Reply Box
+                    // Reply Box & Canned Responses
                     if (!isClosed)
                       Container(
-                        padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
                           color: Theme.of(context).cardColor,
                           border: Border(top: BorderSide(color: Theme.of(context).dividerColor.withOpacity(0.3))),
                         ),
-                        child: Row(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
-                            IconButton(
-                              tooltip: 'Sistem Teşhis Bilgisi Ekle',
-                              icon: const Icon(Icons.computer_outlined, color: Colors.blueGrey),
-                              onPressed: () async {
-                                final myId = await bind.mainGetMyId();
-                                final osName = Platform.operatingSystem;
-                                final osVer = Platform.operatingSystemVersion;
-                                final hostname = Platform.localHostname;
-                                final cpuCount = Platform.numberOfProcessors;
-
-                                final diag = '\n📋 [Sistem Teşhisi]\n'
-                                    '• Cihaz: $hostname\n'
-                                    '• İşletim Sistemi: $osName ($osVer)\n'
-                                    '• CPU Çekirdek: $cpuCount\n'
-                                    '• AcilBir ID: $myId\n';
-
-                                setState(() {
-                                  _replyController.text = '${_replyController.text.trim()} $diag'.trim();
-                                });
-                              },
-                            ),
-                            Expanded(
-                              child: TextField(
-                                controller: _replyController,
-                                maxLines: 3,
-                                minLines: 1,
-                                decoration: InputDecoration(
-                                  hintText: 'Yanıtınızı yazın...',
-                                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                            // Canned Responses for Staff
+                            if (isAdmin)
+                              Container(
+                                height: 38,
+                                margin: const EdgeInsets.only(top: 6),
+                                child: ListView.separated(
+                                  scrollDirection: Axis.horizontal,
+                                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                                  itemCount: _cannedResponses.length,
+                                  separatorBuilder: (_, __) => const SizedBox(width: 8),
+                                  itemBuilder: (context, index) {
+                                    final text = _cannedResponses[index];
+                                    return ActionChip(
+                                      avatar: const Icon(Icons.flash_on, size: 14, color: Colors.amber),
+                                      label: Text(text, style: const TextStyle(fontSize: 11)),
+                                      onPressed: () {
+                                        setState(() {
+                                          _replyController.text = text;
+                                        });
+                                      },
+                                    );
+                                  },
                                 ),
                               ),
-                            ),
-                            const SizedBox(width: 8),
-                            IconButton.filled(
-                              icon: _isSendingReply
-                                  ? const SizedBox(
-                                      width: 18,
-                                      height: 18,
-                                      child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                                    )
-                                  : const Icon(Icons.send_rounded),
-                              onPressed: _isSendingReply ? null : _sendReply,
+
+                            Padding(
+                              padding: const EdgeInsets.all(12),
+                              child: Row(
+                                children: [
+                                  IconButton(
+                                    tooltip: 'Sistem Teşhis Bilgisi Ekle',
+                                    icon: const Icon(Icons.computer_outlined, color: Colors.blueGrey),
+                                    onPressed: () async {
+                                      final myId = await bind.mainGetMyId();
+                                      final osName = Platform.operatingSystem.toUpperCase();
+                                      final osVer = Platform.operatingSystemVersion;
+                                      final hostname = Platform.localHostname;
+                                      final cpuCount = Platform.numberOfProcessors;
+
+                                      final diag = '\n📋 [Sistem Teşhisi]\n'
+                                          '• Cihaz: $hostname\n'
+                                          '• İşletim Sistemi: $osName ($osVer)\n'
+                                          '• CPU Çekirdek: $cpuCount\n'
+                                          '• AcilBir ID: $myId\n';
+
+                                      setState(() {
+                                        _replyController.text = '${_replyController.text.trim()} $diag'.trim();
+                                      });
+                                    },
+                                  ),
+                                  Expanded(
+                                    child: TextField(
+                                      controller: _replyController,
+                                      maxLines: 3,
+                                      minLines: 1,
+                                      decoration: InputDecoration(
+                                        hintText: 'Yanıtınızı yazın...',
+                                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  IconButton.filled(
+                                    icon: _isSendingReply
+                                        ? const SizedBox(
+                                            width: 18,
+                                            height: 18,
+                                            child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                                          )
+                                        : const Icon(Icons.send_rounded),
+                                    onPressed: _isSendingReply ? null : _sendReply,
+                                  ),
+                                ],
+                              ),
                             ),
                           ],
                         ),
