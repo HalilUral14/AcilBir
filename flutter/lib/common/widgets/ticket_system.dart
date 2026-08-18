@@ -5,7 +5,6 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:flutter_hbb/common.dart' hide Dialog;
 import 'package:flutter_hbb/models/platform_model.dart';
-import 'package:flutter_hbb/models/user_model.dart';
 import 'package:flutter_hbb/utils/http_service.dart' as http;
 import './login.dart';
 
@@ -1443,100 +1442,122 @@ class _TicketDetailPageState extends State<TicketDetailPage> {
     required bool isStaff,
   }) {
     final theme = Theme.of(context);
-    final bubbleColor = isMe
-        ? theme.colorScheme.primary.withOpacity(0.15)
-        : isStaff
-            ? Colors.indigo.withOpacity(0.12)
-            : theme.cardColor;
+    final isDark = theme.brightness == Brightness.dark;
+
+    // Modern WhatsApp / Telegram Chat Styling
+    final Color bubbleColor = isMe
+        ? (isDark ? const Color(0xFF005C4B) : const Color(0xFFE7FFDB))
+        : (isDark ? const Color(0xFF202C33) : const Color(0xFFF0F2F5));
+
+    final Color textColor = isMe
+        ? (isDark ? Colors.white : Colors.black87)
+        : (isDark ? Colors.white : Colors.black87);
+
+    final Color timeColor = isMe
+        ? (isDark ? Colors.white60 : Colors.black54)
+        : (isDark ? Colors.white54 : Colors.black45);
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          if (!isMe)
+          if (!isMe) ...[
             CircleAvatar(
-              radius: 16,
-              backgroundColor: isStaff ? Colors.indigo : Colors.grey.shade400,
+              radius: 15,
+              backgroundColor: isStaff ? Colors.teal.shade800 : Colors.blueGrey,
               child: Icon(
                 isStaff ? Icons.support_agent : Icons.person,
-                size: 18,
+                size: 16,
                 color: Colors.white,
               ),
             ),
-          if (!isMe) const SizedBox(width: 8),
+            const SizedBox(width: 8),
+          ],
           Flexible(
             child: Container(
-              constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.75),
-              padding: const EdgeInsets.all(12),
+              constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.65),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
                 color: bubbleColor,
                 borderRadius: BorderRadius.only(
-                  topLeft: const Radius.circular(12),
-                  topRight: const Radius.circular(12),
-                  bottomLeft: Radius.circular(isMe ? 12 : 2),
-                  bottomRight: Radius.circular(isMe ? 2 : 12),
+                  topLeft: const Radius.circular(16),
+                  topRight: const Radius.circular(16),
+                  bottomLeft: Radius.circular(isMe ? 16 : 4),
+                  bottomRight: Radius.circular(isMe ? 4 : 16),
                 ),
-                border: Border.all(
-                  color: isMe
-                      ? theme.colorScheme.primary.withOpacity(0.3)
-                      : isStaff
-                          ? Colors.indigo.withOpacity(0.3)
-                          : theme.dividerColor.withOpacity(0.3),
-                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.06),
+                    blurRadius: 3,
+                    offset: const Offset(0, 1),
+                  ),
+                ],
               ),
               child: Column(
                 crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        senderName,
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
-                          color: isStaff ? Colors.indigo : theme.textTheme.titleSmall?.color,
-                        ),
-                      ),
-                      if (isStaff) ...[
-                        const SizedBox(width: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                          decoration: BoxDecoration(
-                            color: Colors.indigo,
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: const Text(
-                            'YETKİLİ',
-                            style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
+                  if (!isMe)
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          senderName,
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                            color: isStaff ? Colors.tealAccent.shade400 : (isDark ? Colors.lightBlueAccent : Colors.indigo),
                           ),
                         ),
+                        if (isStaff) ...[
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                            decoration: BoxDecoration(
+                              color: Colors.teal.shade800,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: const Text(
+                              'YETKİLİ',
+                              style: TextStyle(color: Colors.white, fontSize: 8, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ],
                       ],
-                      const SizedBox(width: 8),
-                      Text(
-                        time,
-                        style: TextStyle(fontSize: 10, color: theme.textTheme.bodySmall?.color),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
+                    ),
+                  if (!isMe) const SizedBox(height: 4),
                   SelectableText(
                     content,
-                    style: const TextStyle(fontSize: 14, height: 1.4),
+                    style: TextStyle(fontSize: 14, height: 1.4, color: textColor),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      Text(
+                        time,
+                        style: TextStyle(fontSize: 10, color: timeColor),
+                      ),
+                      if (isMe) ...[
+                        const SizedBox(width: 4),
+                        Icon(Icons.done_all, size: 14, color: isDark ? Colors.tealAccent : Colors.teal),
+                      ],
+                    ],
                   ),
                 ],
               ),
             ),
           ),
-          if (isMe) const SizedBox(width: 8),
-          if (isMe)
+          if (isMe) ...[
+            const SizedBox(width: 8),
             CircleAvatar(
-              radius: 16,
-              backgroundColor: theme.colorScheme.primary,
-              child: const Icon(Icons.person, size: 18, color: Colors.white),
+              radius: 15,
+              backgroundColor: isDark ? Colors.teal.shade800 : Colors.teal.shade600,
+              child: const Icon(Icons.person, size: 16, color: Colors.white),
             ),
+          ],
         ],
       ),
     );
@@ -1546,8 +1567,29 @@ class _TicketDetailPageState extends State<TicketDetailPage> {
   Widget build(BuildContext context) {
     final status = _ticketData?['status'] ?? 1;
     final isClosed = status == 0;
-    final currentUserId = UserModel.getLocalUserInfo()?['id'] ?? 0;
     final bool isAdmin = gFFI.userModel.isAdmin.value;
+    final String currentUsername = gFFI.userModel.userName.value.trim().toLowerCase();
+    final String currentDisplayName = gFFI.userModel.displayName.value.trim().toLowerCase();
+
+    bool checkIsMe(dynamic senderUser) {
+      final String uName = ((senderUser is Map ? senderUser['username'] : senderUser) ?? '').toString().trim().toLowerCase();
+      if (uName.isNotEmpty && currentUsername.isNotEmpty) {
+        if (uName == currentUsername || (currentDisplayName.isNotEmpty && uName == currentDisplayName)) {
+          return true;
+        }
+      }
+      return false;
+    }
+
+    String formatTime(dynamic dt) {
+      if (dt == null) return '';
+      final str = dt.toString().replaceFirst('T', ' ');
+      if (str.length >= 16) {
+        return str.substring(0, 16);
+      }
+      return str;
+    }
+
     final rating = _ticketData?['rating'] is int ? _ticketData!['rating'] : int.tryParse(_ticketData?['rating']?.toString() ?? '0') ?? 0;
 
     return Scaffold(
@@ -1647,8 +1689,8 @@ class _TicketDetailPageState extends State<TicketDetailPage> {
                           _buildChatBubble(
                             senderName: _ticketData?['user']?['username'] ?? 'Müşteri',
                             content: _ticketData?['content'] ?? '',
-                            time: _ticketData?['created_at']?.toString().split('T').first ?? '',
-                            isMe: (_ticketData?['user_id'] == currentUserId),
+                            time: formatTime(_ticketData?['created_at']),
+                            isMe: checkIsMe(_ticketData?['user']),
                             isStaff: false,
                           ),
 
@@ -1657,8 +1699,8 @@ class _TicketDetailPageState extends State<TicketDetailPage> {
                             ...(_ticketData!['replies'] as List).map((r) {
                               final isStaff = (r['is_staff'] == true || r['is_staff'] == 1);
                               final senderName = isStaff ? 'Yetkili Destek' : (r['user']?['username'] ?? 'Müşteri');
-                              final time = r['created_at']?.toString().split('T').first ?? '';
-                              final isMe = (r['user_id'] == currentUserId);
+                              final time = formatTime(r['created_at']);
+                              final isMe = checkIsMe(r['user']);
 
                               return _buildChatBubble(
                                 senderName: senderName,
@@ -1711,7 +1753,7 @@ class _TicketDetailPageState extends State<TicketDetailPage> {
                                         style: const TextStyle(fontStyle: FontStyle.italic, color: Colors.blueGrey),
                                       ),
                                     ],
-                                  ] else if (_ticketData?['user_id'] == currentUserId) ...[
+                                  ] else if (checkIsMe(_ticketData?['user'])) ...[
                                     Row(
                                       mainAxisAlignment: MainAxisAlignment.center,
                                       children: List.generate(5, (index) {
