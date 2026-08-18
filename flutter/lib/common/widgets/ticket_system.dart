@@ -1644,7 +1644,7 @@ class _TicketDetailPageState extends State<TicketDetailPage> {
                               style: const TextStyle(fontSize: 12, color: Colors.blueGrey),
                             ),
                           const Spacer(),
-                          if (_ticketData?['rustdesk_id'] != null && _ticketData!['rustdesk_id'].toString().trim().isNotEmpty) ...[
+                          if (isAdmin && _ticketData?['rustdesk_id'] != null && _ticketData!['rustdesk_id'].toString().trim().isNotEmpty) ...[
                             ElevatedButton.icon(
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.teal.shade700,
