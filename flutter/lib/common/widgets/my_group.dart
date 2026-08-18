@@ -354,13 +354,7 @@ class UserDetailPage extends StatelessWidget {
         title: Text(displayName, style: const TextStyle(fontWeight: FontWeight.bold)),
       ),
       body: Obx(() {
-        // Collect all accessible peers from both groupModel and abModel
-        final allPeers = <Peer>[...gFFI.groupModel.peers];
-        for (final abPeer in gFFI.abModel.peers) {
-          if (!allPeers.any((p) => p.id == abPeer.id)) {
-            allPeers.add(abPeer);
-          }
-        }
+        final allPeers = gFFI.groupModel.peers;
 
         // Match by account loginName or local username
         final userPeers = allPeers.where((p) {
