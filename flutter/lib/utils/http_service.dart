@@ -4,7 +4,7 @@ import 'package:flutter_hbb/consts.dart';
 import 'package:http/http.dart' as http;
 import '../models/platform_model.dart';
 import 'package:flutter_hbb/common.dart';
-export 'package:http/http.dart' show Response;
+export 'package:http/http.dart' show Response, MultipartRequest, MultipartFile;
 
 enum HttpMethod { get, post, put, delete }
 

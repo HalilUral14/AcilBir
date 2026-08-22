@@ -7,7 +7,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:get/get.dart';
 import 'package:flutter_hbb/common.dart' hide Dialog;
 import 'package:flutter_hbb/models/platform_model.dart';
-import 'package:flutter_hbb/utils/http_service.dart' as http;
+import 'package:http/http.dart' as http;
 import './login.dart';
 
 /// Open Ticket System View
