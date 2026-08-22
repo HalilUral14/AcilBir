@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:get/get.dart';
 import 'package:flutter_hbb/common.dart' hide Dialog;
 import 'package:flutter_hbb/models/platform_model.dart';
@@ -812,7 +814,9 @@ class _TicketCreateDialogState extends State<TicketCreateDialog> {
   int _selectedPriority = 2; // Normal
   bool _isLoadingCategories = true;
   bool _isSubmitting = false;
+  bool _isUploadingAttachment = false;
   String? _errorMessage;
+  final List<Map<String, dynamic>> _pendingAttachments = [];
 
   @override
   void initState() {
@@ -866,6 +870,64 @@ class _TicketCreateDialogState extends State<TicketCreateDialog> {
     }
   }
 
+  Future<void> _pickAndUploadAttachment() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['jpg', 'jpeg', 'png', 'webp', 'bmp', 'pdf', 'zip'],
+      );
+      if (result == null || result.files.single.path == null) return;
+
+      final filePath = result.files.single.path!;
+      final file = File(filePath);
+
+      setState(() {
+        _isUploadingAttachment = true;
+      });
+
+      final url = await bind.mainGetApiServer();
+      final token = bind.mainGetLocalOption(key: 'access_token');
+
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse('$url/api/ticket/attachment/upload'),
+      );
+      request.headers['Authorization'] = 'Bearer $token';
+      request.headers['api-token'] = token;
+      request.files.add(await http.MultipartFile.fromPath('file', file.path));
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+
+      if (response.statusCode == 200) {
+        final resData = json.decode(response.body);
+        final attData = resData['data'];
+        if (attData != null && attData['id'] != null) {
+          final int attId = attData['id'] is int ? attData['id'] : int.parse(attData['id'].toString());
+          setState(() {
+            _pendingAttachments.add({
+              'id': attId,
+              'file_name': attData['file_name'] ?? file.path.split(Platform.pathSeparator).last,
+              'file_path': file.path,
+            });
+          });
+          showToast('Dosya eklendi.');
+        }
+      } else {
+        final err = json.decode(response.body);
+        throw err['msg'] ?? err['error'] ?? 'Dosya yüklenemedi.';
+      }
+    } catch (e) {
+      showToast('Yükleme hatası: ${e.toString().replaceAll('Exception: ', '')}');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isUploadingAttachment = false;
+        });
+      }
+    }
+  }
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -883,6 +945,7 @@ class _TicketCreateDialogState extends State<TicketCreateDialog> {
         'content': _contentController.text.trim(),
         'rustdesk_id': _rustdeskIdController.text.trim(),
         'priority': _selectedPriority,
+        'attachments': _pendingAttachments.map((a) => a['id']).toList(),
       };
       if (_selectedCategoryId != null && _selectedCategoryId! > 0) {
         body['category_id'] = _selectedCategoryId;
@@ -969,10 +1032,9 @@ class _TicketCreateDialogState extends State<TicketCreateDialog> {
                 ),
                 const SizedBox(height: 16),
 
-                if (_errorMessage != null)
+                if (_errorMessage != null) ...[
                   Container(
                     padding: const EdgeInsets.all(10),
-                    margin: const EdgeInsets.only(bottom: 14),
                     decoration: BoxDecoration(
                       color: Colors.red.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(8),
@@ -980,14 +1042,16 @@ class _TicketCreateDialogState extends State<TicketCreateDialog> {
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.error_outline, size: 18, color: Colors.red),
+                        const Icon(Icons.error_outline, color: Colors.red, size: 18),
                         const SizedBox(width: 8),
                         Expanded(
-                          child: Text(_errorMessage!, style: const TextStyle(color: Colors.red, fontSize: 12, fontWeight: FontWeight.w500)),
+                          child: Text(_errorMessage!, style: const TextStyle(color: Colors.red, fontSize: 12)),
                         ),
                       ],
                     ),
                   ),
+                  const SizedBox(height: 14),
+                ],
 
                 // Admin Option: Open on behalf of Customer
                 if (isAdmin) ...[
@@ -1115,30 +1179,41 @@ class _TicketCreateDialogState extends State<TicketCreateDialog> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Text('Açıklama / Mesajınız *', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
-                    TextButton.icon(
-                      style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
-                      icon: const Icon(Icons.computer_rounded, size: 16),
-                      label: const Text('Sistem Teşhisi Ekle', style: TextStyle(fontSize: 12)),
-                      onPressed: () async {
-                        final myId = await bind.mainGetMyId();
-                        final osName = Platform.operatingSystem.toUpperCase();
-                        final osVer = Platform.operatingSystemVersion;
-                        final hostname = Platform.localHostname;
-                        final cpuCount = Platform.numberOfProcessors;
-                        final ver = await bind.mainGetVersion();
+                    Row(
+                      children: [
+                        TextButton.icon(
+                          style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
+                          icon: const Icon(Icons.attach_file_rounded, size: 16),
+                          label: const Text('Dosya/Görsel', style: TextStyle(fontSize: 12)),
+                          onPressed: _isUploadingAttachment ? null : _pickAndUploadAttachment,
+                        ),
+                        const SizedBox(width: 4),
+                        TextButton.icon(
+                          style: TextButton.styleFrom(visualDensity: VisualDensity.compact),
+                          icon: const Icon(Icons.computer_rounded, size: 16),
+                          label: const Text('Sistem Teşhisi', style: TextStyle(fontSize: 12)),
+                          onPressed: () async {
+                            final myId = await bind.mainGetMyId();
+                            final osName = Platform.operatingSystem.toUpperCase();
+                            final osVer = Platform.operatingSystemVersion;
+                            final hostname = Platform.localHostname;
+                            final cpuCount = Platform.numberOfProcessors;
+                            final ver = await bind.mainGetVersion();
 
-                        final diag = '\n\n📋 [Sistem Teşhis Özeti]\n'
-                            '• Cihaz Adı: $hostname\n'
-                            '• İşletim Sistemi: $osName ($osVer)\n'
-                            '• CPU Çekirdek: $cpuCount\n'
-                            '• AcilBir ID: $myId\n'
-                            '• Sürüm: v$ver\n'
-                            '------------------------';
+                            final diag = '\n\n📋 [Sistem Teşhis Özeti]\n'
+                                '• Cihaz Adı: $hostname\n'
+                                '• İşletim Sistemi: $osName ($osVer)\n'
+                                '• CPU Çekirdek: $cpuCount\n'
+                                '• AcilBir ID: $myId\n'
+                                '• Sürüm: v$ver\n'
+                                '------------------------';
 
-                        setState(() {
-                          _contentController.text = '${_contentController.text.trim()}$diag'.trim();
-                        });
-                      },
+                            setState(() {
+                              _contentController.text = '${_contentController.text.trim()}$diag'.trim();
+                            });
+                          },
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -1157,6 +1232,27 @@ class _TicketCreateDialogState extends State<TicketCreateDialog> {
                     return null;
                   },
                 ),
+
+                // Attachments preview
+                if (_pendingAttachments.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    children: _pendingAttachments.map((att) {
+                      return Chip(
+                        avatar: const Icon(Icons.attach_file, size: 14),
+                        label: Text(att['file_name'] ?? 'Ek', style: const TextStyle(fontSize: 11)),
+                        deleteIcon: const Icon(Icons.close, size: 14),
+                        onDeleted: () {
+                          setState(() {
+                            _pendingAttachments.remove(att);
+                          });
+                        },
+                      );
+                    }).toList(),
+                  ),
+                ],
+
                 const SizedBox(height: 20),
 
                 // Butonlar
@@ -1169,7 +1265,7 @@ class _TicketCreateDialogState extends State<TicketCreateDialog> {
                     ),
                     const SizedBox(width: 12),
                     ElevatedButton(
-                      onPressed: _isSubmitting ? null : _submit,
+                      onPressed: (_isSubmitting || _isUploadingAttachment) ? null : _submit,
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                       ),
@@ -1192,6 +1288,36 @@ class _TicketCreateDialogState extends State<TicketCreateDialog> {
   }
 }
 
+/// Canned Response Item
+class CannedResponseTemplate {
+  final String category;
+  final String title;
+  final String text;
+  final IconData icon;
+
+  const CannedResponseTemplate({
+    required this.category,
+    required this.title,
+    required this.text,
+    this.icon = Icons.flash_on_rounded,
+  });
+}
+
+/// Helper to decode HTML entities and quotes in tickets
+String _cleanTicketText(String? raw) {
+  if (raw == null || raw.isEmpty) return '';
+  return raw
+      .replaceAll('&quot;', '"')
+      .replaceAll('&#34;', '"')
+      .replaceAll('&apos;', "'")
+      .replaceAll('&#39;', "'")
+      .replaceAll('&amp;', '&')
+      .replaceAll('&lt;', '<')
+      .replaceAll('&gt;', '>')
+      .replaceAll('&#x27;', "'")
+      .replaceAll('&#x2F;', '/');
+}
+
 /// Ticket Detail & Live Chat Page
 class TicketDetailPage extends StatefulWidget {
   final int ticketId;
@@ -1209,18 +1335,75 @@ class _TicketDetailPageState extends State<TicketDetailPage> {
   final ScrollController _scrollController = ScrollController();
   bool _isSendingReply = false;
   bool _isClosing = false;
+  bool _isUploadingAttachment = false;
   Timer? _autoRefreshTimer;
 
   int _selectedRating = 5;
   final TextEditingController _ratingCommentController = TextEditingController();
   bool _isSubmittingRating = false;
 
-  final List<String> _cannedResponses = [
-    '⚡ Bağlantı isteği gönderildi, lütfen ekranınızdaki "Kabul Et" butonuna basınız.',
-    '✅ İşlemleriniz başarıyla tamamlanmıştır, kontrol edebilirsiniz.',
-    '🔄 Lütfen bilgisayarınızı yeniden başlatıp tekrar bağlanmayı deneyiniz.',
-    '❓ Sorun devam ediyor mu? Ekran görüntüsü paylaşabilir misiniz?',
-    '🔒 Talebiniz çözüme kavuşturulduğu için kapatılmıştır. İyi günler dileriz.',
+  final List<Map<String, dynamic>> _pendingAttachments = [];
+
+  static const List<CannedResponseTemplate> _allTemplates = [
+    // Bağlantı & Kurulum
+    CannedResponseTemplate(
+      category: 'Bağlantı',
+      title: 'Kabul Et İsteği',
+      text: '⚡ Bağlantı isteği gönderildi, lütfen ekranınızdaki "Kabul Et" butonuna basınız.',
+      icon: Icons.link_rounded,
+    ),
+    CannedResponseTemplate(
+      category: 'Bağlantı',
+      title: 'Şifre Paylaşımı',
+      text: '🔑 Lütfen AcilBir ekranınızdaki ID ve Tek Kullanımlık Şifrenizi iletiniz.',
+      icon: Icons.vpn_key_rounded,
+    ),
+    CannedResponseTemplate(
+      category: 'Bağlantı',
+      title: 'Yeniden Başlat',
+      text: '🔄 Lütfen bilgisayarınızı yeniden başlatıp tekrar bağlanmayı deneyiniz.',
+      icon: Icons.restart_alt_rounded,
+    ),
+
+    // Teşhis & Bilgi
+    CannedResponseTemplate(
+      category: 'Teşhis',
+      title: 'Ekran Görüntüsü',
+      text: '📷 Sorunun veya aldığınız hatanın ekran görüntüsünü paylaşabilir misiniz?',
+      icon: Icons.photo_camera_rounded,
+    ),
+    CannedResponseTemplate(
+      category: 'Teşhis',
+      title: 'Sorun Detayı',
+      text: '❓ Yaşadığınız problem hangi işlem sırasında ve ne zamandır meydana geliyor?',
+      icon: Icons.help_outline_rounded,
+    ),
+    CannedResponseTemplate(
+      category: 'Teşhis',
+      title: 'İnternet Kontrolü',
+      text: '🌐 Bağlantınızda anlık dalgalanma görünüyor, lütfen internetinizi kontrol ediniz.',
+      icon: Icons.wifi_find_rounded,
+    ),
+
+    // Çözüm & Kapatma
+    CannedResponseTemplate(
+      category: 'Çözüm',
+      title: 'İşlem Başarılı',
+      text: '✅ İşlemleriniz başarıyla tamamlanmıştır, lütfen kontrol ediniz.',
+      icon: Icons.check_circle_rounded,
+    ),
+    CannedResponseTemplate(
+      category: 'Çözüm',
+      title: 'Test Ediniz',
+      text: '🧪 Gerekli düzenleme yapılmıştır. Lütfen test edip bilgi veriniz.',
+      icon: Icons.science_rounded,
+    ),
+    CannedResponseTemplate(
+      category: 'Çözüm',
+      title: 'Talep Kapatıldı',
+      text: '🔒 Talebiniz çözüme kavuşturulduğu için kapatılmıştır. İyi günler dileriz.',
+      icon: Icons.lock_outline_rounded,
+    ),
   ];
 
   @override
@@ -1229,7 +1412,7 @@ class _TicketDetailPageState extends State<TicketDetailPage> {
     _fetchDetail();
     // Auto refresh chat every 5s for near-instant message updates
     _autoRefreshTimer = Timer.periodic(const Duration(seconds: 5), (_) {
-      if (mounted && !_isLoading && !_isSendingReply) {
+      if (mounted && !_isLoading && !_isSendingReply && !_isUploadingAttachment) {
         _fetchDetail(silent: true);
       }
     });
@@ -1300,9 +1483,93 @@ class _TicketDetailPageState extends State<TicketDetailPage> {
     });
   }
 
+  Future<void> _uploadAttachmentFile(File file) async {
+    setState(() {
+      _isUploadingAttachment = true;
+    });
+    try {
+      final url = await bind.mainGetApiServer();
+      final token = bind.mainGetLocalOption(key: 'access_token');
+
+      var request = http.MultipartRequest(
+        'POST',
+        Uri.parse('$url/api/ticket/attachment/upload'),
+      );
+      request.headers['Authorization'] = 'Bearer $token';
+      request.headers['api-token'] = token;
+      request.files.add(await http.MultipartFile.fromPath('file', file.path));
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+
+      if (response.statusCode == 200) {
+        final resData = json.decode(response.body);
+        final attData = resData['data'];
+        if (attData != null && attData['id'] != null) {
+          final int attId = attData['id'] is int ? attData['id'] : int.parse(attData['id'].toString());
+          setState(() {
+            _pendingAttachments.add({
+              'id': attId,
+              'file_name': attData['file_name'] ?? file.path.split(Platform.pathSeparator).last,
+              'file_path': file.path,
+              'is_image': true,
+            });
+          });
+          showToast('Görsel başarıyla eklendi.');
+        }
+      } else {
+        final err = json.decode(response.body);
+        throw err['msg'] ?? err['error'] ?? 'Görsel yüklenemedi.';
+      }
+    } catch (e) {
+      showToast('Yükleme hatası: ${e.toString().replaceAll('Exception: ', '')}');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isUploadingAttachment = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _pickAndUploadImage() async {
+    try {
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['jpg', 'jpeg', 'png', 'webp', 'bmp'],
+      );
+      if (result == null || result.files.single.path == null) return;
+
+      final filePath = result.files.single.path!;
+      await _uploadAttachmentFile(File(filePath));
+    } catch (e) {
+      showToast('Dosya seçilemedi: $e');
+    }
+  }
+
+  Future<void> _pasteFromClipboard() async {
+    try {
+      final clipboardData = await Clipboard.getData(Clipboard.kTextPlain);
+      if (clipboardData != null && clipboardData.text != null && clipboardData.text!.isNotEmpty) {
+        final text = clipboardData.text!.trim();
+        if ((text.endsWith('.png') || text.endsWith('.jpg') || text.endsWith('.jpeg') || text.endsWith('.webp')) && File(text).existsSync()) {
+          await _uploadAttachmentFile(File(text));
+          return;
+        }
+        setState(() {
+          _replyController.text = '${_replyController.text} $text'.trim();
+        });
+      } else {
+        showToast('Panoda yapıştırılacak içerik bulunamadı.');
+      }
+    } catch (e) {
+      showToast('Pano okuma hatası: $e');
+    }
+  }
+
   Future<void> _sendReply() async {
     final text = _replyController.text.trim();
-    if (text.isEmpty) return;
+    if (text.isEmpty && _pendingAttachments.isEmpty) return;
 
     setState(() {
       _isSendingReply = true;
@@ -1314,7 +1581,8 @@ class _TicketDetailPageState extends State<TicketDetailPage> {
 
       final body = {
         'ticket_id': widget.ticketId,
-        'content': text,
+        'content': text.isEmpty ? '📷 [Görsel Paylaşıldı]' : text,
+        'attachments': _pendingAttachments.map((a) => a['id']).toList(),
       };
 
       final res = await http.post(
@@ -1329,6 +1597,9 @@ class _TicketDetailPageState extends State<TicketDetailPage> {
 
       if (res.statusCode == 200) {
         _replyController.clear();
+        setState(() {
+          _pendingAttachments.clear();
+        });
         await _fetchDetail(silent: true);
         _scrollToBottom();
       } else {
@@ -1344,6 +1615,268 @@ class _TicketDetailPageState extends State<TicketDetailPage> {
         });
       }
     }
+  }
+
+  void _showAllCannedResponsesModal() {
+    String query = '';
+    String selectedCategory = 'Tümü';
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final categories = ['Tümü', ..._allTemplates.map((t) => t.category).toSet()];
+            final filtered = _allTemplates.where((t) {
+              final matchCat = selectedCategory == 'Tümü' || t.category == selectedCategory;
+              final matchQuery = query.isEmpty ||
+                  t.title.toLowerCase().contains(query.toLowerCase()) ||
+                  t.text.toLowerCase().contains(query.toLowerCase());
+              return matchCat && matchQuery;
+            }).toList();
+
+            return Container(
+              height: MediaQuery.of(context).size.height * 0.7,
+              decoration: BoxDecoration(
+                color: Theme.of(context).scaffoldBackgroundColor,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                boxShadow: const [BoxShadow(color: Colors.black26, blurRadius: 10)],
+              ),
+              child: Column(
+                children: [
+                  // Modal Header
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                    decoration: BoxDecoration(
+                      border: Border(bottom: BorderSide(color: Theme.of(context).dividerColor.withOpacity(0.2))),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.quickreply_rounded, color: Colors.teal),
+                        const SizedBox(width: 10),
+                        const Text('Hazır Yanıt Şablonları', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                        const Spacer(),
+                        IconButton(
+                          icon: const Icon(Icons.close_rounded),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // Search Bar
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    child: TextField(
+                      decoration: InputDecoration(
+                        hintText: 'Şablon veya mesaj ara...',
+                        prefixIcon: const Icon(Icons.search_rounded, size: 20),
+                        isDense: true,
+                        filled: true,
+                        fillColor: Theme.of(context).cardColor,
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                      ),
+                      onChanged: (val) {
+                        setModalState(() {
+                          query = val;
+                        });
+                      },
+                    ),
+                  ),
+
+                  // Category Filter Chips
+                  SizedBox(
+                    height: 36,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      itemCount: categories.length,
+                      separatorBuilder: (_, __) => const SizedBox(width: 8),
+                      itemBuilder: (context, idx) {
+                        final cat = categories[idx];
+                        final isSel = selectedCategory == cat;
+                        return ChoiceChip(
+                          label: Text(cat, style: TextStyle(fontSize: 12, color: isSel ? Colors.white : null)),
+                          selected: isSel,
+                          selectedColor: Colors.teal,
+                          onSelected: (_) {
+                            setModalState(() {
+                              selectedCategory = cat;
+                            });
+                          },
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+
+                  // Template List
+                  Expanded(
+                    child: filtered.isEmpty
+                        ? const Center(child: Text('Eşleşen şablon bulunamadı.', style: TextStyle(color: Colors.grey)))
+                        : ListView.separated(
+                            padding: const EdgeInsets.all(16),
+                            itemCount: filtered.length,
+                            separatorBuilder: (_, __) => const SizedBox(height: 8),
+                            itemBuilder: (context, idx) {
+                              final item = filtered[idx];
+                              return Card(
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  side: BorderSide(color: Theme.of(context).dividerColor.withOpacity(0.2)),
+                                ),
+                                child: InkWell(
+                                  borderRadius: BorderRadius.circular(12),
+                                  onTap: () {
+                                    setState(() {
+                                      _replyController.text = item.text;
+                                    });
+                                    Navigator.pop(context);
+                                  },
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(12),
+                                    child: Row(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        CircleAvatar(
+                                          radius: 16,
+                                          backgroundColor: Colors.teal.withOpacity(0.12),
+                                          child: Icon(item.icon, size: 16, color: Colors.teal),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Row(
+                                                children: [
+                                                  Text(item.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                                                  const SizedBox(width: 8),
+                                                  Container(
+                                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                    decoration: BoxDecoration(
+                                                      color: Colors.teal.withOpacity(0.1),
+                                                      borderRadius: BorderRadius.circular(4),
+                                                    ),
+                                                    child: Text(item.category, style: const TextStyle(fontSize: 10, color: Colors.teal, fontWeight: FontWeight.w600)),
+                                                  ),
+                                                ],
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                item.text,
+                                                style: TextStyle(fontSize: 12, color: Theme.of(context).textTheme.bodySmall?.color),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: Colors.grey),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  void _showImageLightbox(BuildContext context, String imageUrl, String fileName, String token) {
+    Get.dialog(
+      Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.all(16),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Container(
+              constraints: const BoxConstraints(maxWidth: 900, maxHeight: 700),
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.92),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.5),
+                    blurRadius: 20,
+                    spreadRadius: 5,
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      color: Colors.black45,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              fileName,
+                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.close_rounded, color: Colors.white),
+                            onPressed: () => Get.back(),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Flexible(
+                      child: InteractiveViewer(
+                        panEnabled: true,
+                        boundaryMargin: const EdgeInsets.all(20),
+                        minScale: 0.5,
+                        maxScale: 4.0,
+                        child: Image.network(
+                          imageUrl,
+                          headers: {
+                            'Authorization': 'Bearer $token',
+                            'api-token': token,
+                          },
+                          loadingBuilder: (context, child, progress) {
+                            if (progress == null) return child;
+                            return const Center(
+                              child: CircularProgressIndicator(color: Colors.white),
+                            );
+                          },
+                          errorBuilder: (_, __, ___) => const Padding(
+                            padding: EdgeInsets.all(40),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.broken_image, color: Colors.white70, size: 48),
+                                SizedBox(height: 8),
+                                Text('Görsel yüklenemedi veya erişim izni yok.', style: TextStyle(color: Colors.white70)),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> _closeTicket() async {
@@ -1440,6 +1973,9 @@ class _TicketDetailPageState extends State<TicketDetailPage> {
     required String time,
     required bool isMe,
     required bool isStaff,
+    List<dynamic>? attachments,
+    required String apiServerUrl,
+    required String token,
   }) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
@@ -1456,6 +1992,8 @@ class _TicketDetailPageState extends State<TicketDetailPage> {
     final Color timeColor = isMe
         ? (isDark ? Colors.white60 : Colors.black54)
         : (isDark ? Colors.white54 : Colors.black45);
+
+    final cleanText = _cleanTicketText(content);
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
@@ -1527,10 +2065,91 @@ class _TicketDetailPageState extends State<TicketDetailPage> {
                       ],
                     ),
                   if (!isMe) const SizedBox(height: 4),
-                  SelectableText(
-                    content,
-                    style: TextStyle(fontSize: 14, height: 1.4, color: textColor),
-                  ),
+                  if (cleanText.isNotEmpty)
+                    SelectableText(
+                      cleanText,
+                      style: TextStyle(fontSize: 14, height: 1.4, color: textColor),
+                    ),
+
+                  // Image attachments thumbnails
+                  if (attachments != null && attachments.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: attachments.map<Widget>((att) {
+                        final int attId = att['id'] is int ? att['id'] : int.tryParse(att['id']?.toString() ?? '0') ?? 0;
+                        final String fileName = att['file_name'] ?? 'Görsel';
+                        final String downloadUrl = '$apiServerUrl/api/ticket/attachment/download/$attId';
+
+                        return GestureDetector(
+                          onTap: () {
+                            _showImageLightbox(context, downloadUrl, fileName, token);
+                          },
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Container(
+                              width: 140,
+                              height: 140,
+                              color: Colors.black12,
+                              child: Stack(
+                                fit: StackFit.expand,
+                                children: [
+                                  Image.network(
+                                    downloadUrl,
+                                    headers: {
+                                      'Authorization': 'Bearer $token',
+                                      'api-token': token,
+                                    },
+                                    fit: BoxFit.cover,
+                                    loadingBuilder: (context, child, progress) {
+                                      if (progress == null) return child;
+                                      return const Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)));
+                                    },
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return Container(
+                                        color: Colors.grey.shade300,
+                                        child: Column(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            const Icon(Icons.broken_image_rounded, color: Colors.grey, size: 30),
+                                            const SizedBox(height: 4),
+                                            Padding(
+                                              padding: const EdgeInsets.symmetric(horizontal: 4),
+                                              child: Text(
+                                                fileName,
+                                                maxLines: 2,
+                                                overflow: TextOverflow.ellipsis,
+                                                textAlign: TextAlign.center,
+                                                style: const TextStyle(fontSize: 9, color: Colors.black54),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                  Positioned(
+                                    bottom: 4,
+                                    right: 4,
+                                    child: Container(
+                                      padding: const EdgeInsets.all(4),
+                                      decoration: BoxDecoration(
+                                        color: Colors.black54,
+                                        borderRadius: BorderRadius.circular(4),
+                                      ),
+                                      child: const Icon(Icons.fullscreen_rounded, color: Colors.white, size: 16),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ],
+
                   const SizedBox(height: 4),
                   Row(
                     mainAxisSize: MainAxisSize.min,
@@ -1570,6 +2189,11 @@ class _TicketDetailPageState extends State<TicketDetailPage> {
     final bool isAdmin = gFFI.userModel.isAdmin.value;
     final String currentUsername = gFFI.userModel.userName.value.trim().toLowerCase();
     final String currentDisplayName = gFFI.userModel.displayName.value.trim().toLowerCase();
+
+    final token = bind.mainGetLocalOption(key: 'access_token');
+    final apiServerUrl = bind.mainGetLocalOption(key: 'custom-rendezvous-server').isNotEmpty
+        ? 'http://${bind.mainGetLocalOption(key: 'custom-rendezvous-server')}:21114'
+        : 'https://acilbir.com';
 
     bool checkIsMe(dynamic senderUser) {
       final String uName = ((senderUser is Map ? senderUser['username'] : senderUser) ?? '').toString().trim().toLowerCase();
@@ -1692,6 +2316,9 @@ class _TicketDetailPageState extends State<TicketDetailPage> {
                             time: formatTime(_ticketData?['created_at']),
                             isMe: checkIsMe(_ticketData?['user']),
                             isStaff: false,
+                            attachments: _ticketData?['attachments'] is List ? _ticketData!['attachments'] : null,
+                            apiServerUrl: apiServerUrl,
+                            token: token,
                           ),
 
                           // Replies
@@ -1708,6 +2335,9 @@ class _TicketDetailPageState extends State<TicketDetailPage> {
                                 time: time,
                                 isMe: isMe,
                                 isStaff: isStaff,
+                                attachments: r['attachments'] is List ? r['attachments'] : null,
+                                apiServerUrl: apiServerUrl,
+                                token: token,
                               );
                             }),
 
@@ -1749,7 +2379,7 @@ class _TicketDetailPageState extends State<TicketDetailPage> {
                                     if (_ticketData?['rating_comment'] != null && _ticketData!['rating_comment'].toString().isNotEmpty) ...[
                                       const SizedBox(height: 8),
                                       Text(
-                                        '"${_ticketData!['rating_comment']}"',
+                                        '"${_cleanTicketText(_ticketData!['rating_comment'])}"',
                                         style: const TextStyle(fontStyle: FontStyle.italic, color: Colors.blueGrey),
                                       ),
                                     ],
@@ -1812,28 +2442,80 @@ class _TicketDetailPageState extends State<TicketDetailPage> {
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            // Canned Responses for Staff
+                            // Canned Responses for Staff (Horizontal Slider with All Templates Button)
                             if (isAdmin)
                               Container(
-                                height: 38,
-                                margin: const EdgeInsets.only(top: 6),
-                                child: ListView.separated(
+                                height: 42,
+                                margin: const EdgeInsets.only(top: 8),
+                                child: ListView(
                                   scrollDirection: Axis.horizontal,
                                   padding: const EdgeInsets.symmetric(horizontal: 12),
-                                  itemCount: _cannedResponses.length,
-                                  separatorBuilder: (_, __) => const SizedBox(width: 8),
-                                  itemBuilder: (context, index) {
-                                    final text = _cannedResponses[index];
-                                    return ActionChip(
-                                      avatar: const Icon(Icons.flash_on, size: 14, color: Colors.amber),
-                                      label: Text(text, style: const TextStyle(fontSize: 11)),
-                                      onPressed: () {
-                                        setState(() {
-                                          _replyController.text = text;
-                                        });
-                                      },
-                                    );
-                                  },
+                                  children: [
+                                    // Button to open full search modal
+                                    ActionChip(
+                                      elevation: 1,
+                                      backgroundColor: Colors.teal.shade50,
+                                      avatar: const Icon(Icons.dashboard_customize_rounded, size: 16, color: Colors.teal),
+                                      label: const Text(
+                                        'Tüm Şablonlar',
+                                        style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.teal),
+                                      ),
+                                      onPressed: _showAllCannedResponsesModal,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    const VerticalDivider(width: 1, indent: 6, endIndent: 6),
+                                    const SizedBox(width: 8),
+
+                                    // Quick scrollable response chips
+                                    ..._allTemplates.take(6).map((item) {
+                                      return Padding(
+                                        padding: const EdgeInsets.only(right: 8),
+                                        child: ActionChip(
+                                          avatar: Icon(item.icon, size: 14, color: Colors.amber.shade800),
+                                          label: Text(item.title, style: const TextStyle(fontSize: 11)),
+                                          tooltip: item.text,
+                                          onPressed: () {
+                                            setState(() {
+                                              _replyController.text = item.text;
+                                            });
+                                          },
+                                        ),
+                                      );
+                                    }),
+                                  ],
+                                ),
+                              ),
+
+                            // Pending Attachment Preview Bar
+                            if (_pendingAttachments.isNotEmpty)
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.attach_file_rounded, size: 16, color: Colors.teal),
+                                    const SizedBox(width: 6),
+                                    Expanded(
+                                      child: Wrap(
+                                        spacing: 8,
+                                        children: _pendingAttachments.map((att) {
+                                          return Chip(
+                                            avatar: const Icon(Icons.image, size: 14, color: Colors.blueGrey),
+                                            label: Text(
+                                              att['file_name'] ?? 'Görsel',
+                                              style: const TextStyle(fontSize: 11),
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                            deleteIcon: const Icon(Icons.close, size: 14),
+                                            onDeleted: () {
+                                              setState(() {
+                                                _pendingAttachments.remove(att);
+                                              });
+                                            },
+                                          );
+                                        }).toList(),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
 
@@ -1841,6 +2523,23 @@ class _TicketDetailPageState extends State<TicketDetailPage> {
                               padding: const EdgeInsets.all(12),
                               child: Row(
                                 children: [
+                                  // Attachment Image Picker
+                                  IconButton(
+                                    tooltip: 'Görsel Ekle (PNG/JPG)',
+                                    icon: _isUploadingAttachment
+                                        ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2))
+                                        : const Icon(Icons.photo_library_rounded, color: Colors.teal),
+                                    onPressed: _isUploadingAttachment ? null : _pickAndUploadImage,
+                                  ),
+
+                                  // Paste from Clipboard
+                                  IconButton(
+                                    tooltip: 'Panodan Yapıştır (Ctrl+V)',
+                                    icon: const Icon(Icons.content_paste_rounded, color: Colors.blueGrey),
+                                    onPressed: _pasteFromClipboard,
+                                  ),
+
+                                  // System Diagnostics
                                   IconButton(
                                     tooltip: 'Sistem Teşhis Bilgisi Ekle',
                                     icon: const Icon(Icons.computer_outlined, color: Colors.blueGrey),
@@ -1862,6 +2561,8 @@ class _TicketDetailPageState extends State<TicketDetailPage> {
                                       });
                                     },
                                   ),
+                                  const SizedBox(width: 4),
+
                                   Expanded(
                                     child: TextField(
                                       controller: _replyController,
@@ -1883,7 +2584,7 @@ class _TicketDetailPageState extends State<TicketDetailPage> {
                                             child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
                                           )
                                         : const Icon(Icons.send_rounded),
-                                    onPressed: _isSendingReply ? null : _sendReply,
+                                    onPressed: (_isSendingReply || _isUploadingAttachment) ? null : _sendReply,
                                   ),
                                 ],
                               ),
@@ -1908,3 +2609,4 @@ class _TicketDetailPageState extends State<TicketDetailPage> {
     );
   }
 }
+
