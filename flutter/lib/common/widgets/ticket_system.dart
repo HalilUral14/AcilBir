@@ -1967,12 +1967,154 @@ class _TicketDetailPageState extends State<TicketDetailPage> {
     }
   }
 
+  bool _isSystemMessage(String content, dynamic senderUser, dynamic userId) {
+    final uid = userId is int ? userId : int.tryParse(userId?.toString() ?? '0') ?? 0;
+    if (uid == 0 || senderUser == null) return true;
+    final c = content.trim();
+    return c.contains('[SİSTEM BİLDİRİMİ]') ||
+        c.contains('Uzaktan Bağlantı Oturumu Tamamlandı') ||
+        c.startsWith('⏱️');
+  }
+
+  Widget _buildSystemEventBubble({
+    required String content,
+    required String time,
+  }) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    final cleanContent = content.replaceAll('[SİSTEM BİLDİRİMİ]', '').trim();
+
+    return Center(
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 10),
+        constraints: BoxConstraints(maxWidth: MediaQuery.of(context).size.width * 0.72),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF1E293B).withOpacity(0.7) : const Color(0xFFF1F5F9),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: isDark ? Colors.blueGrey.shade700 : Colors.blueGrey.shade200,
+            width: 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.04),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.monitor_heart_outlined, size: 16, color: Colors.blue.shade400),
+                const SizedBox(width: 6),
+                Text(
+                  'SİSTEM BİLDİRİMİ',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.6,
+                    color: Colors.blue.shade400,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  time,
+                  style: TextStyle(fontSize: 10, color: theme.textTheme.bodySmall?.color?.withOpacity(0.7)),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            SelectableText(
+              cleanContent,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 13,
+                height: 1.45,
+                fontWeight: FontWeight.w500,
+                color: isDark ? Colors.white.withOpacity(0.9) : Colors.blueGrey.shade900,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildUserAvatar({
+    required String? avatarUrl,
+    required String displayName,
+    required bool isStaff,
+    required bool isMe,
+    required bool isDark,
+    required String apiServerUrl,
+    required String token,
+  }) {
+    final bool hasValidUrl = avatarUrl != null &&
+        avatarUrl.trim().isNotEmpty &&
+        (avatarUrl.startsWith('http://') || avatarUrl.startsWith('https://') || avatarUrl.startsWith('/'));
+
+    String fullAvatarUrl = '';
+    if (hasValidUrl) {
+      if (avatarUrl.startsWith('http')) {
+        fullAvatarUrl = avatarUrl;
+      } else {
+        fullAvatarUrl = '$apiServerUrl$avatarUrl';
+      }
+    }
+
+    if (hasValidUrl) {
+      return ClipOval(
+        child: Container(
+          width: 32,
+          height: 32,
+          color: isStaff ? Colors.teal.shade800 : (isDark ? Colors.blueGrey.shade800 : Colors.blueGrey.shade200),
+          child: Image.network(
+            fullAvatarUrl,
+            headers: token.isNotEmpty
+                ? {
+                    'Authorization': 'Bearer $token',
+                    'api-token': token,
+                  }
+                : null,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => _buildFallbackAvatarIcon(isStaff, isMe, isDark, displayName),
+          ),
+        ),
+      );
+    }
+    return _buildFallbackAvatarIcon(isStaff, isMe, isDark, displayName);
+  }
+
+  Widget _buildFallbackAvatarIcon(bool isStaff, bool isMe, bool isDark, String displayName) {
+    final initials = displayName.trim().isNotEmpty ? displayName.trim()[0].toUpperCase() : '';
+    return CircleAvatar(
+      radius: 15,
+      backgroundColor: isMe
+          ? (isDark ? Colors.teal.shade800 : Colors.teal.shade600)
+          : (isStaff ? Colors.teal.shade800 : Colors.blueGrey),
+      child: isStaff
+          ? const Icon(Icons.support_agent, size: 16, color: Colors.white)
+          : (initials.isNotEmpty
+              ? Text(initials, style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold))
+              : const Icon(Icons.person, size: 16, color: Colors.white)),
+    );
+  }
+
   Widget _buildChatBubble({
     required String senderName,
     required String content,
     required String time,
     required bool isMe,
     required bool isStaff,
+    String? avatarUrl,
     List<dynamic>? attachments,
     required String apiServerUrl,
     required String token,
@@ -2002,14 +2144,14 @@ class _TicketDetailPageState extends State<TicketDetailPage> {
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           if (!isMe) ...[
-            CircleAvatar(
-              radius: 15,
-              backgroundColor: isStaff ? Colors.teal.shade800 : Colors.blueGrey,
-              child: Icon(
-                isStaff ? Icons.support_agent : Icons.person,
-                size: 16,
-                color: Colors.white,
-              ),
+            _buildUserAvatar(
+              avatarUrl: avatarUrl,
+              displayName: senderName,
+              isStaff: isStaff,
+              isMe: false,
+              isDark: isDark,
+              apiServerUrl: apiServerUrl,
+              token: token,
             ),
             const SizedBox(width: 8),
           ],
@@ -2171,10 +2313,14 @@ class _TicketDetailPageState extends State<TicketDetailPage> {
           ),
           if (isMe) ...[
             const SizedBox(width: 8),
-            CircleAvatar(
-              radius: 15,
-              backgroundColor: isDark ? Colors.teal.shade800 : Colors.teal.shade600,
-              child: const Icon(Icons.person, size: 16, color: Colors.white),
+            _buildUserAvatar(
+              avatarUrl: gFFI.userModel.avatar.value,
+              displayName: gFFI.userModel.displayNameOrUserName,
+              isStaff: isAdmin,
+              isMe: true,
+              isDark: isDark,
+              apiServerUrl: apiServerUrl,
+              token: token,
             ),
           ],
         ],
@@ -2316,6 +2462,7 @@ class _TicketDetailPageState extends State<TicketDetailPage> {
                             time: formatTime(_ticketData?['created_at']),
                             isMe: checkIsMe(_ticketData?['user']),
                             isStaff: false,
+                            avatarUrl: _ticketData?['user']?['avatar']?.toString(),
                             attachments: _ticketData?['attachments'] is List ? _ticketData!['attachments'] : null,
                             apiServerUrl: apiServerUrl,
                             token: token,
@@ -2324,17 +2471,29 @@ class _TicketDetailPageState extends State<TicketDetailPage> {
                           // Replies
                           if (_ticketData?['replies'] is List)
                             ...(_ticketData!['replies'] as List).map((r) {
+                              final content = r['content'] ?? '';
+                              final time = formatTime(r['created_at']);
+                              final userId = r['user_id'] ?? r['user']?['id'] ?? 0;
+
+                              if (_isSystemMessage(content, r['user'], userId)) {
+                                return _buildSystemEventBubble(
+                                  content: content,
+                                  time: time,
+                                );
+                              }
+
                               final isStaff = (r['is_staff'] == true || r['is_staff'] == 1);
                               final senderName = isStaff ? 'Yetkili Destek' : (r['user']?['username'] ?? 'Müşteri');
-                              final time = formatTime(r['created_at']);
                               final isMe = checkIsMe(r['user']);
+                              final avatarUrl = r['user']?['avatar']?.toString();
 
                               return _buildChatBubble(
                                 senderName: senderName,
-                                content: r['content'] ?? '',
+                                content: content,
                                 time: time,
                                 isMe: isMe,
                                 isStaff: isStaff,
+                                avatarUrl: avatarUrl,
                                 attachments: r['attachments'] is List ? r['attachments'] : null,
                                 apiServerUrl: apiServerUrl,
                                 token: token,

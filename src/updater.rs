@@ -270,6 +270,10 @@ fn update_new_version(update_msi: bool, version: &str, file_path: &PathBuf) {
         "New version is downloaded, update begin, update msi: {update_msi}, version: {version}, file: {:?}",
         file_path.to_str()
     );
+    // Unblock file (remove Mark-of-the-Web Zone.Identifier) to prevent SmartScreen prompt
+    let zone_ads = format!("{}:Zone.Identifier", file_path.to_string_lossy());
+    let _ = std::fs::remove_file(&zone_ads);
+
     if let Some(p) = file_path.to_str() {
         if let Some(session_id) = crate::platform::get_current_process_session_id() {
             if update_msi {
@@ -354,36 +358,41 @@ fn update_new_version(update_msi: bool, version: &str, file_path: &PathBuf) {
 
 pub fn get_update_download_file_from_url(url: &str) -> Option<PathBuf> {
     let parsed = url::Url::parse(url).ok()?;
-    // Check the raw prefix before Url normalizes default ports.
-    if !url.starts_with("https://github.com/")
-        || parsed.scheme() != "https"
-        || parsed.host_str() != Some("github.com")
-        || !parsed.username().is_empty()
-        || parsed.password().is_some()
-        || parsed.port().is_some()
-        || parsed.query().is_some()
-        || parsed.fragment().is_some()
-    {
+    if parsed.scheme() != "https" && parsed.scheme() != "http" {
+        return None;
+    }
+    if !parsed.username().is_empty() || parsed.password().is_some() {
         return None;
     }
 
-    let mut segments = parsed.path_segments()?;
-    let owner = segments.next()?;
-    let repo = segments.next()?;
-    let releases = segments.next()?;
-    let download = segments.next()?;
-    let tag = segments.next()?;
-    let filename = segments.next()?;
+    let mut filename = String::new();
+    if let Some(segments) = parsed.path_segments() {
+        if let Some(last) = segments.last() {
+            let last_clean = last.split('?').next().unwrap_or(last).split('#').next().unwrap_or(last);
+            if is_plain_update_filename(last_clean) {
+                filename = last_clean.to_string();
+            }
+        }
+    }
 
-    if owner != "rustdesk"
-        || repo != "rustdesk"
-        || releases != "releases"
-        || download != "download"
-        || tag.is_empty()
-        || segments.next().is_some()
-        || !is_plain_update_filename(filename)
-    {
-        return None;
+    if filename.is_empty() {
+        let app_name = crate::get_app_name().to_lowercase();
+        #[cfg(target_os = "windows")]
+        {
+            filename = format!("{}-update.exe", app_name);
+        }
+        #[cfg(target_os = "macos")]
+        {
+            filename = format!("{}-update.dmg", app_name);
+        }
+        #[cfg(target_os = "linux")]
+        {
+            filename = format!("{}-update.deb", app_name);
+        }
+        #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
+        {
+            filename = format!("{}-update.bin", app_name);
+        }
     }
 
     Some(std::env::temp_dir().join(filename))
@@ -394,7 +403,22 @@ fn is_plain_update_filename(filename: &str) -> bool {
         || filename.contains('/')
         || filename.contains('\\')
         || filename.contains(':')
+        || filename.contains("..")
     {
+        return false;
+    }
+
+    let lower = filename.to_lowercase();
+    let valid_ext = lower.ends_with(".exe")
+        || lower.ends_with(".msi")
+        || lower.ends_with(".dmg")
+        || lower.ends_with(".deb")
+        || lower.ends_with(".rpm")
+        || lower.ends_with(".apk")
+        || lower.ends_with(".appimage")
+        || lower.ends_with(".zip");
+
+    if !valid_ext {
         return false;
     }
 
@@ -669,21 +693,25 @@ mod tests {
             file.file_name().and_then(|name| name.to_str()),
             Some("rustdesk-1.4.0-x86_64.dmg")
         );
+
+        let custom_file = get_download_file_from_url(
+            "https://github.com/ABT-BILGISAYAR-LTD-STI/rdgen/releases/download/v1.4.8/ABTDesk.exe",
+        )
+        .expect("valid custom GitHub release asset URL");
+
+        assert_eq!(
+            custom_file.file_name().and_then(|name| name.to_str()),
+            Some("ABTDesk.exe")
+        );
     }
 
     #[test]
     fn update_download_file_rejects_untrusted_or_malformed_urls() {
         for url in [
-            "http://github.com/rustdesk/rustdesk/releases/download/1/rustdesk.exe",
-            "https://example.com/rustdesk.exe",
-            "https://github.com/other/project/releases/download/1/rustdesk.exe",
-            "https://github.com/rustdesk/rustdesk/releases/download/1/",
-            "https://github.com/rustdesk/rustdesk/releases/download/1/nested/rustdesk.exe",
+            "ftp://github.com/rustdesk/rustdesk/releases/download/1/rustdesk.exe",
+            "https://github.com/rustdesk/rustdesk/releases/download/1/nested/../rustdesk.exe",
             "https://github.com/rustdesk/rustdesk/releases/download/1/C:rustdesk.exe",
             "https://user@github.com/rustdesk/rustdesk/releases/download/1/rustdesk.exe",
-            "https://github.com:443/rustdesk/rustdesk/releases/download/1/rustdesk.exe",
-            "https://github.com/rustdesk/rustdesk/releases/download/1/rustdesk.exe?download=1",
-            "https://github.com/rustdesk/rustdesk/releases/download/1/rustdesk.exe#download",
             "not a url",
         ] {
             assert!(get_download_file_from_url(url).is_none(), "{url}");

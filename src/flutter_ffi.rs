@@ -2787,6 +2787,12 @@ pub fn main_set_common(_key: String, _value: String) {
                     "New version file is downloaded, update begin, {:?}",
                     new_version_file.to_str()
                 );
+                #[cfg(target_os = "windows")]
+                {
+                    // Remove Zone.Identifier (Mark-of-the-Web) to bypass SmartScreen popup
+                    let zone_ads = format!("{}:Zone.Identifier", new_version_file.to_string_lossy());
+                    let _ = std::fs::remove_file(&zone_ads);
+                }
                 if let Some(f) = new_version_file.to_str() {
                     // 1.4.0 does not support "--update"
                     // But we can assume that the new version supports it.

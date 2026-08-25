@@ -4110,16 +4110,22 @@ void checkUpdate() {
         final res = await http.get(Uri.parse('https://acilbir.com/api/software/releases/latest/$platform'));
         if (res.statusCode == 200 && res.body.isNotEmpty) {
           final data = jsonDecode(res.body);
-          if (data is Map && data['url'] != null && data['version'] != null) {
             final String remoteVer = data['version'].toString();
             final String downloadUrl = data['url'].toString();
+            final String remoteUpdatedAt = (data['updated_at'] ?? '').toString();
             final String currentVer = await bind.mainGetVersion();
+            final String lastKnownUpdatedAt = bind.mainGetLocalOption(key: 'last-applied-build-date');
 
-            if (_isNewerVersion(remoteVer, currentVer)) {
-              debugPrint("AcilBir: $platform için yeni sürüm bulundu: v$remoteVer ($downloadUrl)");
+            final bool isNewerVer = _isNewerVersion(remoteVer, currentVer);
+            final bool isSameVerRebuild = remoteVer.isNotEmpty &&
+                remoteVer == currentVer &&
+                remoteUpdatedAt.isNotEmpty &&
+                remoteUpdatedAt != lastKnownUpdatedAt;
+
+            if (isNewerVer || isSameVerRebuild) {
+              debugPrint("AcilBir: $platform için yeni sürüm/güncel derleme bulundu: v$remoteVer ($downloadUrl)");
               stateGlobal.updateUrl.value = downloadUrl;
             }
-          }
         }
       } catch (e) {
         debugPrint("AcilBir: Güncelleme kontrolü bildirimi: $e");

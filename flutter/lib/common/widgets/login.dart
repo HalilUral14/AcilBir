@@ -24,7 +24,11 @@ const kOpSvgList = [
   'facebook',
   'azure',
   'auth0',
-  'microsoft'
+  'microsoft',
+  'abt',
+  'abtdesk',
+  'herofis',
+  'pencad',
 ];
 const _requestingAccountAuth = 'Requesting account auth';
 const _waitingAccountAuth = 'Waiting account auth';
@@ -46,11 +50,29 @@ _OidcProviderBranding _oidcProviderBranding(String op) {
         label: 'Microsoft',
         iconKey: 'microsoft',
       );
+    case 'abt':
+    case 'abt-sso':
+    case 'abtdesk':
+      return _OidcProviderBranding(
+        label: 'ABT',
+        iconKey: 'abt',
+      );
+    case 'herofis':
+      return _OidcProviderBranding(
+        label: 'Herofis',
+        iconKey: 'abt',
+      );
+    case 'pencad':
+      return _OidcProviderBranding(
+        label: 'PenCAD',
+        iconKey: 'abt',
+      );
     default:
       return _OidcProviderBranding(
         label: {
               'github': 'GitHub',
               'gitlab': 'GitLab',
+              'abt': 'ABT',
             }[op.toLowerCase()] ??
             toCapitalized(op),
         iconKey: op.toLowerCase(),
@@ -71,6 +93,27 @@ class _IconOP extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (op.toLowerCase() == 'abt' || op.toLowerCase() == 'abtdesk' || op.toLowerCase() == 'herofis' || op.toLowerCase() == 'pencad') {
+      return Container(
+        margin: margin,
+        child: icon == null
+            ? Image.asset(
+                'assets/abt.png',
+                width: 20,
+                height: 20,
+                errorBuilder: (_, __, ___) => SvgPicture.asset(
+                  'assets/auth-abt.svg',
+                  width: 20,
+                  height: 20,
+                ),
+              )
+            : SvgPicture.string(
+                icon!,
+                width: 20,
+                height: 20,
+              ),
+      );
+    }
     final svgFile =
         kOpSvgList.contains(op.toLowerCase()) ? op.toLowerCase() : 'default';
     return Container(
