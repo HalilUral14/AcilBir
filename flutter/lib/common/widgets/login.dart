@@ -29,6 +29,8 @@ const kOpSvgList = [
   'abtdesk',
   'herofis',
   'pencad',
+  'glasscad',
+  'camcad',
 ];
 const _requestingAccountAuth = 'Requesting account auth';
 const _waitingAccountAuth = 'Waiting account auth';
@@ -60,12 +62,18 @@ _OidcProviderBranding _oidcProviderBranding(String op) {
     case 'herofis':
       return _OidcProviderBranding(
         label: 'Herofis',
-        iconKey: 'abt',
+        iconKey: 'herofis',
       );
     case 'pencad':
       return _OidcProviderBranding(
         label: 'PenCAD',
-        iconKey: 'abt',
+        iconKey: 'pencad',
+      );
+    case 'glasscad':
+    case 'camcad':
+      return _OidcProviderBranding(
+        label: 'GlassCAD',
+        iconKey: 'glasscad',
       );
     default:
       return _OidcProviderBranding(
@@ -73,6 +81,9 @@ _OidcProviderBranding _oidcProviderBranding(String op) {
               'github': 'GitHub',
               'gitlab': 'GitLab',
               'abt': 'ABT',
+              'herofis': 'Herofis',
+              'pencad': 'PenCAD',
+              'glasscad': 'GlassCAD',
             }[op.toLowerCase()] ??
             toCapitalized(op),
         iconKey: op.toLowerCase(),
@@ -93,7 +104,8 @@ class _IconOP extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (op.toLowerCase() == 'abt' || op.toLowerCase() == 'abtdesk' || op.toLowerCase() == 'herofis' || op.toLowerCase() == 'pencad') {
+    final lowerOp = op.toLowerCase();
+    if (lowerOp == 'abt' || lowerOp == 'abtdesk') {
       return Container(
         margin: margin,
         child: icon == null
@@ -114,8 +126,56 @@ class _IconOP extends StatelessWidget {
               ),
       );
     }
+    if (lowerOp == 'herofis') {
+      return Container(
+        margin: margin,
+        child: icon == null
+            ? SvgPicture.asset(
+                'assets/auth-herofis.svg',
+                width: 20,
+                height: 20,
+              )
+            : SvgPicture.string(
+                icon!,
+                width: 20,
+                height: 20,
+              ),
+      );
+    }
+    if (lowerOp == 'pencad') {
+      return Container(
+        margin: margin,
+        child: icon == null
+            ? SvgPicture.asset(
+                'assets/auth-pencad.svg',
+                width: 20,
+                height: 20,
+              )
+            : SvgPicture.string(
+                icon!,
+                width: 20,
+                height: 20,
+              ),
+      );
+    }
+    if (lowerOp == 'glasscad' || lowerOp == 'camcad') {
+      return Container(
+        margin: margin,
+        child: icon == null
+            ? SvgPicture.asset(
+                'assets/auth-glasscad.svg',
+                width: 20,
+                height: 20,
+              )
+            : SvgPicture.string(
+                icon!,
+                width: 20,
+                height: 20,
+              ),
+      );
+    }
     final svgFile =
-        kOpSvgList.contains(op.toLowerCase()) ? op.toLowerCase() : 'default';
+        kOpSvgList.contains(lowerOp) ? lowerOp : 'default';
     return Container(
       margin: margin,
       child: icon == null
