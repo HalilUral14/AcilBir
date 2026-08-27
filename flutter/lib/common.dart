@@ -3856,7 +3856,7 @@ Size getIncomingOnlyHomeSize() {
 }
 
 Size getIncomingOnlySettingsSize() {
-  return Size(768, 600);
+  return Size(860, 640);
 }
 
 bool isInHomePage() {

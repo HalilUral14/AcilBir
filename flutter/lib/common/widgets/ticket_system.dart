@@ -6,12 +6,31 @@ import 'package:flutter/services.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:get/get.dart';
 import 'package:flutter_hbb/common.dart' hide Dialog;
+import 'package:flutter_hbb/desktop/widgets/tabbar_widget.dart';
 import 'package:flutter_hbb/models/platform_model.dart';
 import 'package:http/http.dart' as http;
+import 'package:window_manager/window_manager.dart';
 import './login.dart';
+
+const String kTabLabelTicketPage = 'tickets';
 
 /// Open Ticket System View
 Future<void> openTicketSystem() async {
+  if (isDesktop && Get.isRegistered<DesktopTabController>()) {
+    try {
+      DesktopTabController tabController = Get.find<DesktopTabController>();
+      tabController.add(TabInfo(
+        key: kTabLabelTicketPage,
+        label: 'Destek Talepleri',
+        selectedIcon: Icons.support_agent_sharp,
+        unselectedIcon: Icons.support_agent_outlined,
+        page: const TicketListPage(key: ValueKey(kTabLabelTicketPage)),
+      ));
+      return;
+    } catch (e) {
+      debugPrintStack(label: '$e');
+    }
+  }
   Get.to(() => const TicketListPage());
 }
 
@@ -57,6 +76,14 @@ class _TicketListPageState extends State<TicketListPage> {
   @override
   void initState() {
     super.initState();
+    if (isDesktop && bind.isIncomingOnly()) {
+      windowManager.getSize().then((sz) {
+        if (sz.width < 700 || sz.height < 500) {
+          windowManager.setSize(getIncomingOnlySettingsSize());
+          setResizable(true);
+        }
+      });
+    }
     platformFFI.registerEventHandler('callback_query_onlines', 'ticket_list_onlines', (evt) async {
       if (evt.containsKey('onlines') && evt['onlines'] is String) {
         final onlines = (evt['onlines'] as String).split(',');
@@ -74,6 +101,14 @@ class _TicketListPageState extends State<TicketListPage> {
   void dispose() {
     platformFFI.unregisterEventHandler('callback_query_onlines', 'ticket_list_onlines');
     _searchController.dispose();
+    if (isDesktop && bind.isIncomingOnly()) {
+      if (Get.isRegistered<DesktopTabController>()) {
+        if (isInHomePage()) {
+          windowManager.setSize(getIncomingOnlyHomeSize());
+          setResizable(false);
+        }
+      }
+    }
     super.dispose();
   }
 
@@ -1409,6 +1444,14 @@ class _TicketDetailPageState extends State<TicketDetailPage> {
   @override
   void initState() {
     super.initState();
+    if (isDesktop && bind.isIncomingOnly()) {
+      windowManager.getSize().then((sz) {
+        if (sz.width < 700 || sz.height < 500) {
+          windowManager.setSize(getIncomingOnlySettingsSize());
+          setResizable(true);
+        }
+      });
+    }
     _fetchDetail();
     // Auto refresh chat every 5s for near-instant message updates
     _autoRefreshTimer = Timer.periodic(const Duration(seconds: 5), (_) {
