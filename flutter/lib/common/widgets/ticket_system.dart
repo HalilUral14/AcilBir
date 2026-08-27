@@ -2316,7 +2316,7 @@ class _TicketDetailPageState extends State<TicketDetailPage> {
             _buildUserAvatar(
               avatarUrl: gFFI.userModel.avatar.value,
               displayName: gFFI.userModel.displayNameOrUserName,
-              isStaff: isAdmin,
+              isStaff: gFFI.userModel.isAdmin.value,
               isMe: true,
               isDark: isDark,
               apiServerUrl: apiServerUrl,
