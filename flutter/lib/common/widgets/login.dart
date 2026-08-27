@@ -4,11 +4,13 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_hbb/common/hbbs/hbbs.dart';
+import 'package:flutter_hbb/desktop/widgets/tabbar_widget.dart';
 import 'package:flutter_hbb/models/platform_model.dart';
 import 'package:flutter_hbb/models/user_model.dart';
 import 'package:get/get.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:window_manager/window_manager.dart';
 
 import '../../common.dart';
 import './dialog.dart';
@@ -820,14 +822,36 @@ const kAuthReqTypeOidc = 'oidc/';
 Future<bool?>? _activeLoginDialog;
 
 // call this directly
-Future<bool?> loginDialog() {
+Future<bool?> loginDialog() async {
   final activeDialog = _activeLoginDialog;
   if (activeDialog != null) {
     return activeDialog;
   }
+  final wasIncomingOnly = isDesktop && bind.isIncomingOnly();
+  if (wasIncomingOnly) {
+    try {
+      final sz = await windowManager.getSize();
+      if (sz.width < 700 || sz.height < 500) {
+        await windowManager.setSize(getIncomingOnlySettingsSize());
+        await windowManager.setResizable(true);
+      }
+    } catch (e) {
+      debugPrint("resize for login failed: $e");
+    }
+  }
   final dialog = _openLoginDialogOnce();
   _activeLoginDialog = dialog;
-  return dialog;
+  try {
+    final res = await dialog;
+    return res;
+  } finally {
+    if (wasIncomingOnly && Get.isRegistered<DesktopTabController>()) {
+      if (isInHomePage()) {
+        windowManager.setSize(getIncomingOnlyHomeSize());
+        windowManager.setResizable(false);
+      }
+    }
+  }
 }
 
 Future<bool?> _openLoginDialogOnce() async {
@@ -1429,7 +1453,10 @@ Future<bool?> _openLoginDialog() async {
     return CustomAlertDialog(
       title: title,
       titlePadding: titlePadding,
-      contentBoxConstraints: const BoxConstraints(minWidth: 420, maxWidth: 460),
+      contentBoxConstraints: BoxConstraints(
+        minWidth: isDesktop ? 400 : 280,
+        maxWidth: 460,
+      ),
       content: buildCurrentBody(),
       onCancel: onDialogCancel,
       onSubmit: () {
