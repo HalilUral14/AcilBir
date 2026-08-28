@@ -464,7 +464,7 @@ class _DesktopHomePageState extends State<DesktopHomePage>
           onPressed,
           closeButton: true,
           help: 'Sürüm Notları',
-          link: 'https://github.com/ABT-BILGISAYAR-LTD-STI/rdgen/releases/latest');
+          link: 'https://acilbir.com/surum-notlari');
     }
     if (systemError.isNotEmpty) {
       return buildInstallCard("", systemError, "", () {});
