@@ -244,9 +244,14 @@ class UpdateProgressState extends State<UpdateProgress> {
       '{$appName}-to-update-tip',
       '',
       gFFI.dialogManager,
-      onSubmit: () {
+      onSubmit: () async {
         debugPrint('Downloaded, update to new version now');
-        bind.mainSetCommon(key: 'update-me', value: widget.downloadUrl);
+        if (stateGlobal.updateUpdatedAt.value.isNotEmpty) {
+          await bind.mainSetLocalOption(
+              key: 'last-applied-build-date',
+              value: stateGlobal.updateUpdatedAt.value);
+        }
+        await bind.mainSetCommon(key: 'update-me', value: widget.downloadUrl);
       },
       submitTimeout: 5,
     );

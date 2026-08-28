@@ -4124,6 +4124,7 @@ void checkUpdate() {
 
             if (isNewerVer || isSameVerRebuild) {
               debugPrint("AcilBir: $platform için yeni sürüm/güncel derleme bulundu: v$remoteVer ($downloadUrl)");
+              stateGlobal.updateUpdatedAt.value = remoteUpdatedAt;
               stateGlobal.updateUrl.value = downloadUrl;
             }
         }
