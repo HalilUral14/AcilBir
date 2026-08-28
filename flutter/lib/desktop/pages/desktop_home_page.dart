@@ -95,15 +95,17 @@ class _DesktopHomePageState extends State<DesktopHomePage>
       if (!isOutgoingOnly) buildIDBoard(context),
       if (!isOutgoingOnly) buildPasswordBoard(context),
       ElevatedButton.icon(
-        icon: const Icon(Icons.support_agent),
-        label: const Text("Destek Talebi (Ticket)"),
+        icon: const Icon(Icons.support_agent, size: 18),
+        label: const Text("Destek Talebi (Ticket)", style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.orange,
           foregroundColor: Colors.white,
-          minimumSize: const Size(double.infinity, 38),
+          minimumSize: const Size(double.infinity, 34),
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
         ),
         onPressed: openTicketSystem,
-      ).marginSymmetric(horizontal: 10, vertical: 10),
+      ).marginSymmetric(horizontal: 8, vertical: 4),
       FutureBuilder<Widget>(
         future: Future.value(
             Obx(() => buildHelpCards(stateGlobal.updateUrl.value))),
@@ -147,14 +149,18 @@ class _DesktopHomePageState extends State<DesktopHomePage>
           children: [
             Column(
               children: [
-                SingleChildScrollView(
-                  controller: _leftPaneScrollController,
-                  child: Column(
-                    key: _childKey,
-                    children: children,
+                Expanded(
+                  child: Scrollbar(
+                    controller: _leftPaneScrollController,
+                    child: SingleChildScrollView(
+                      controller: _leftPaneScrollController,
+                      child: Column(
+                        key: _childKey,
+                        children: children,
+                      ),
+                    ),
                   ),
                 ),
-                Expanded(child: Container())
               ],
             ),
             if (isOutgoingOnly)
@@ -607,9 +613,10 @@ class _DesktopHomePageState extends State<DesktopHomePage>
       children: [
         Container(
           margin: EdgeInsets.fromLTRB(
-              0, marginTop, 0, bind.isIncomingOnly() ? marginTop : 0),
+              8, marginTop > 8 ? 8 : marginTop, 8, bind.isIncomingOnly() ? (marginTop > 8 ? 8 : marginTop) : 4),
           child: Container(
               decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(8),
                   gradient: LinearGradient(
                 begin: Alignment.centerLeft,
                 end: Alignment.centerRight,
@@ -618,7 +625,7 @@ class _DesktopHomePageState extends State<DesktopHomePage>
                   Color.fromARGB(255, 244, 114, 124),
                 ],
               )),
-              padding: EdgeInsets.all(20),
+              padding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
               child: Column(
                   mainAxisAlignment: MainAxisAlignment.start,
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -630,8 +637,8 @@ class _DesktopHomePageState extends State<DesktopHomePage>
                                 style: TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.bold,
-                                    fontSize: 15),
-                              ).marginOnly(bottom: 6)),
+                                    fontSize: 13),
+                              ).marginOnly(bottom: 4)),
                             ]
                           : <Widget>[]) +
                       <Widget>[
@@ -639,27 +646,38 @@ class _DesktopHomePageState extends State<DesktopHomePage>
                           Text(
                             translate(content),
                             style: TextStyle(
-                                height: 1.5,
+                                height: 1.3,
                                 color: Colors.white,
                                 fontWeight: FontWeight.normal,
-                                fontSize: 13),
-                          ).marginOnly(bottom: 20)
+                                fontSize: 11),
+                          ).marginOnly(bottom: 8)
                       ] +
                       (btnText.isNotEmpty
                           ? <Widget>[
                               Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    FixedWidthButton(
-                                      width: 150,
-                                      padding: 8,
-                                      isOutline: true,
-                                      text: translate(btnText),
-                                      textColor: Colors.white,
-                                      borderColor: Colors.white,
-                                      textSize: 20,
-                                      radius: 10,
-                                      onTap: onPressed,
+                                    Expanded(
+                                      child: ElevatedButton(
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.white,
+                                          foregroundColor: const Color.fromARGB(255, 226, 66, 188),
+                                          elevation: 0,
+                                          padding: const EdgeInsets.symmetric(vertical: 6),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(6),
+                                          ),
+                                        ),
+                                        onPressed: onPressed,
+                                        child: Text(
+                                          translate(btnText),
+                                          textAlign: TextAlign.center,
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      ),
                                     )
                                   ])
                             ]
@@ -675,23 +693,24 @@ class _DesktopHomePageState extends State<DesktopHomePage>
                                         style: TextStyle(
                                             decoration:
                                                 TextDecoration.underline,
+                                            decorationColor: Colors.white,
                                             color: Colors.white,
-                                            fontSize: 12),
-                                      )).marginOnly(top: 6)),
+                                            fontSize: 11),
+                                      )).marginOnly(top: 4)),
                             ]
                           : <Widget>[]))),
         ),
         if (closeButton != null && closeButton == true)
           Positioned(
-            top: 18,
-            right: 0,
-            child: IconButton(
-              icon: Icon(
+            top: 10,
+            right: 10,
+            child: InkWell(
+              onTap: closeCard,
+              child: Icon(
                 Icons.close,
-                color: Colors.white,
-                size: 20,
+                color: Colors.white.withOpacity(0.85),
+                size: 16,
               ),
-              onPressed: closeCard,
             ),
           ),
       ],
