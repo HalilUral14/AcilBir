@@ -27,6 +27,7 @@ class StateGlobal {
 
   final updateUrl = ''.obs;
   final updateUpdatedAt = ''.obs;
+  final updateNewVersion = ''.obs;
 
   String _inputSource = '';
 

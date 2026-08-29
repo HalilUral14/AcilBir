@@ -457,9 +457,13 @@ class _DesktopHomePageState extends State<DesktopHomePage>
           await launchUrl(url);
         }
       };
+      final newVer = stateGlobal.updateNewVersion.value.isNotEmpty
+          ? stateGlobal.updateNewVersion.value
+          : bind.mainGetNewVersion();
+      final verText = newVer.isNotEmpty ? " (v$newVer)" : "";
       return buildInstallCard(
           "Yeni Güncelleme",
-          "AcilBir yeni bir sürüme sahip: (${bind.mainGetNewVersion()}).",
+          "AcilBir yeni bir sürüme sahip$verText.",
           btnText,
           onPressed,
           closeButton: true,

@@ -4082,17 +4082,6 @@ void earlyAssert() {
 
 void checkUpdate() {
   if (!isWeb) {
-    platformFFI.registerEventHandler(
-        kCheckSoftwareUpdateFinish, kCheckSoftwareUpdateFinish,
-        (Map<String, dynamic> evt) async {
-      if (evt['url'] is String) {
-        stateGlobal.updateUrl.value = evt['url'];
-      }
-    });
-    Timer(const Duration(seconds: 1), () async {
-      bind.mainGetSoftwareUpdateUrl();
-    });
-
     // Otomatik platforma duyarlı güncelleme kontrolü (Windows, macOS, Linux, Android)
     Timer(const Duration(seconds: 2), () async {
       try {
@@ -4110,23 +4099,30 @@ void checkUpdate() {
         final res = await http.get(Uri.parse('https://acilbir.com/api/software/releases/latest/$platform'));
         if (res.statusCode == 200 && res.body.isNotEmpty) {
           final data = jsonDecode(res.body);
-            final String remoteVer = data['version'].toString();
-            final String downloadUrl = data['url'].toString();
-            final String remoteUpdatedAt = (data['updated_at'] ?? '').toString();
-            final String currentVer = await bind.mainGetVersion();
-            final String lastKnownUpdatedAt = bind.mainGetLocalOption(key: 'last-applied-build-date');
+          final String remoteVer = data['version']?.toString() ?? '';
+          final String downloadUrl = data['url']?.toString() ?? '';
+          final String remoteUpdatedAt = (data['updated_at'] ?? '').toString();
+          final String currentVer = await bind.mainGetVersion();
+          final String lastKnownUpdatedAt = bind.mainGetLocalOption(key: 'last-applied-build-date');
 
-            final bool isNewerVer = _isNewerVersion(remoteVer, currentVer);
-            final bool isSameVerRebuild = remoteVer.isNotEmpty &&
-                remoteVer == currentVer &&
-                remoteUpdatedAt.isNotEmpty &&
-                remoteUpdatedAt != lastKnownUpdatedAt;
+          final bool isNewerVer = _isNewerVersion(remoteVer, currentVer);
+          final bool isSameVerRebuild = remoteVer.isNotEmpty &&
+              remoteVer == currentVer &&
+              remoteUpdatedAt.isNotEmpty &&
+              lastKnownUpdatedAt.isNotEmpty &&
+              remoteUpdatedAt != lastKnownUpdatedAt;
 
-            if (isNewerVer || isSameVerRebuild) {
-              debugPrint("AcilBir: $platform için yeni sürüm/güncel derleme bulundu: v$remoteVer ($downloadUrl)");
-              stateGlobal.updateUpdatedAt.value = remoteUpdatedAt;
-              stateGlobal.updateUrl.value = downloadUrl;
-            }
+          // İlk kurulumda lastKnownUpdatedAt boşsa, mevcut sürümün derleme tarihini kaydet (tekrar gereksiz bildirim çıkmasın)
+          if (remoteVer == currentVer && lastKnownUpdatedAt.isEmpty && remoteUpdatedAt.isNotEmpty) {
+            await bind.mainSetLocalOption(key: 'last-applied-build-date', value: remoteUpdatedAt);
+          }
+
+          if (isNewerVer || isSameVerRebuild) {
+            debugPrint("AcilBir: $platform için yeni sürüm/güncel derleme bulundu: v$remoteVer ($downloadUrl)");
+            stateGlobal.updateUpdatedAt.value = remoteUpdatedAt;
+            stateGlobal.updateNewVersion.value = remoteVer;
+            stateGlobal.updateUrl.value = downloadUrl;
+          }
         }
       } catch (e) {
         debugPrint("AcilBir: Güncelleme kontrolü bildirimi: $e");
