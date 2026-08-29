@@ -38,6 +38,7 @@ import 'desktop/pages/remote_page.dart' as desktop_remote;
 import 'desktop/pages/file_manager_page.dart' as desktop_file_manager;
 import 'desktop/pages/view_camera_page.dart' as desktop_view_camera;
 import 'package:flutter_hbb/desktop/widgets/remote_toolbar.dart';
+import 'package:flutter_hbb/desktop/widgets/update_progress.dart';
 import 'models/model.dart';
 import 'models/platform_model.dart';
 
@@ -4122,6 +4123,13 @@ void checkUpdate() {
             stateGlobal.updateUpdatedAt.value = remoteUpdatedAt;
             stateGlobal.updateNewVersion.value = remoteVer;
             stateGlobal.updateUrl.value = downloadUrl;
+
+            // Otomatik güncelleme: Kurulu masaüstü istemcilerde (Windows/macOS) doğrudan başlat
+            if ((isWindows || isMacOS) && bind.mainIsInstalled()) {
+              Timer(const Duration(milliseconds: 600), () {
+                handleUpdate(downloadUrl);
+              });
+            }
           }
         }
       } catch (e) {
