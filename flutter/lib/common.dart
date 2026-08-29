@@ -4107,20 +4107,9 @@ void checkUpdate() {
           final String lastKnownUpdatedAt = bind.mainGetLocalOption(key: 'last-applied-build-date');
 
           final bool isNewerVer = _isNewerVersion(remoteVer, currentVer);
-          final bool isSameVerRebuild = remoteVer.isNotEmpty &&
-              remoteVer == currentVer &&
-              remoteUpdatedAt.isNotEmpty &&
-              lastKnownUpdatedAt.isNotEmpty &&
-              remoteUpdatedAt != lastKnownUpdatedAt;
 
-          // İlk kurulumda lastKnownUpdatedAt boşsa, mevcut sürümün derleme tarihini kaydet (tekrar gereksiz bildirim çıkmasın)
-          if (remoteVer == currentVer && lastKnownUpdatedAt.isEmpty && remoteUpdatedAt.isNotEmpty) {
-            await bind.mainSetLocalOption(key: 'last-applied-build-date', value: remoteUpdatedAt);
-          }
-
-          if (isNewerVer || isSameVerRebuild) {
-            debugPrint("AcilBir: $platform için yeni sürüm/güncel derleme bulundu: v$remoteVer ($downloadUrl)");
-            stateGlobal.updateUpdatedAt.value = remoteUpdatedAt;
+          if (isNewerVer) {
+            debugPrint("AcilBir: $platform için yeni sürüm bulundu: v$remoteVer (mevcut: v$currentVer) ($downloadUrl)");
             stateGlobal.updateNewVersion.value = remoteVer;
             stateGlobal.updateUrl.value = downloadUrl;
 
@@ -4130,6 +4119,10 @@ void checkUpdate() {
                 handleUpdate(downloadUrl);
               });
             }
+          } else {
+            // Sürüm zaten güncel veya daha yeni — güncelleme kartını temizle
+            stateGlobal.updateUrl.value = '';
+            stateGlobal.updateNewVersion.value = '';
           }
         }
       } catch (e) {
