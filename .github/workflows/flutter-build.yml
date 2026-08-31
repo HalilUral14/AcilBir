@@ -831,7 +831,7 @@ jobs:
 
       - name: Apply branding and dynamic versioning
         run: |
-          python3 ${{ github.workspace }}/.github/patches/patch_macos_branding.py
+          python3 ${{ github.workspace }}/.github/patches/patch_branding.py
 
       - name: Build rustdesk
         run: |
