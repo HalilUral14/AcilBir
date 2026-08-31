@@ -469,18 +469,16 @@ def init_global_vars(dist_dir, app_name, args):
 
     global g_version
     global g_build_date
-    g_version = args.version.replace("-", ".")
-    if g_version == "":
-        g_version = read_process_output("--version")
-    version_pattern = re.compile(r"\d+\.\d+\.\d+.*")
-    if not version_pattern.match(g_version):
-        print(f"Error: version {g_version} not found in {dist_app}")
-        return False
-    if g_version.count(".") == 2:
-        # https://github.com/dotnet/runtime/blob/5535e31a712343a63f5d7d796cd874e563e5ac14/src/libraries/System.Private.CoreLib/src/System/Version.cs
-        if args.revision_version < 0 or args.revision_version > 2147483647:
-            raise ValueError(f"Invalid revision version: {args.revision_version}")    
-        g_version = f"{g_version}.{args.revision_version}"
+    raw_v = args.version if args.version else read_process_output("--version")
+    nums = re.findall(r'\d+', raw_v)
+    if len(nums) >= 3:
+        g_version = f"{nums[0]}.{nums[1]}.{nums[2]}"
+    elif len(nums) == 2:
+        g_version = f"{nums[0]}.{nums[1]}.0"
+    elif len(nums) == 1:
+        g_version = f"{nums[0]}.0.0"
+    else:
+        g_version = "1.4.10"
 
     g_build_date = read_process_output("--build-date")
     build_date_pattern = re.compile(r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}")
