@@ -729,14 +729,6 @@ jobs:
           security default-keychain -s app_signing.keychain
           security find-identity -v
 
-      - name: Import notarize key
-        if: env.MACOS_P12_BASE64 != null
-        uses: timheuer/base64-to-file@adaa40c0c581f276132199d4cf60afa07ce60eac # v1.2
-        with:
-          fileName: notary_key.json
-          fileDir: ${{ github.workspace }}
-          encodedString: ${{ secrets.MACOS_NOTARIZE_JSON }}
-
       - name: Install rcodesign tool
         if: env.MACOS_P12_BASE64 != null
         shell: bash
@@ -887,8 +879,44 @@ jobs:
           codesign --force --options runtime --timestamp -s "${{ secrets.MACOS_CODESIGN_IDENTITY }}" --deep --strict "$APP_PATH" -vvv
           create-dmg --icon "$APP_NAME" 200 190 --hide-extension "$APP_NAME" --window-size 800 400 --app-drop-link 600 185 "$DMG_NAME" "$APP_PATH"
           codesign --force --options runtime --timestamp -s "${{ secrets.MACOS_CODESIGN_IDENTITY }}" --deep --strict "$DMG_NAME" -vvv
-          # notarize the dmg with Apple
-          rcodesign notary-submit --api-key-path ${{ github.workspace }}/notary_key.json --staple "$DMG_NAME"
+
+          # Prepare Apple Notary credentials from MACOS_NOTARIZE_JSON
+          python3 -c '
+          import json, os, sys, base64
+          raw = """${{ secrets.MACOS_NOTARIZE_JSON }}""".strip()
+          if raw:
+              try:
+                  data = json.loads(base64.b64decode(raw).decode("utf-8"))
+              except Exception:
+                  try:
+                      data = json.loads(raw)
+                  except Exception as e:
+                      print(f"JSON Parse Error: {e}")
+                      sys.exit(0)
+              
+              os.makedirs("/tmp/apple_notary", exist_ok=True)
+              with open("/tmp/apple_notary/AuthKey.p8", "w") as f:
+                  f.write(data.get("private_key", ""))
+              with open("/tmp/apple_notary/credentials.env", "w") as f:
+                  f.write(f"KEY_ID={data.get(\"key_id\", \"\")}\n")
+                  f.write(f"ISSUER_ID={data.get(\"issuer_id\", \"\")}\n")
+          '
+
+          if [ -f "/tmp/apple_notary/credentials.env" ]; then
+            source /tmp/apple_notary/credentials.env
+            if [ -n "$KEY_ID" ] && [ -n "$ISSUER_ID" ]; then
+              echo "Submitting DMG to Apple Notary Service via xcrun notarytool..."
+              xcrun notarytool submit "$DMG_NAME" \
+                --key /tmp/apple_notary/AuthKey.p8 \
+                --key-id "$KEY_ID" \
+                --issuer "$ISSUER_ID" \
+                --wait
+
+              echo "Stapling Apple notarization ticket to DMG..."
+              xcrun stapler staple "$DMG_NAME"
+              echo "Apple Notarization and Stapling complete!"
+            fi
+          fi
 
       - name: Publish DMG package
         if: env.UPLOAD_ARTIFACT == 'true'
