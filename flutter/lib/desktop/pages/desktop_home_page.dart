@@ -453,7 +453,7 @@ class _DesktopHomePageState extends State<DesktopHomePage>
         if (isInstalled) {
           handleUpdate(updateUrl);
         } else {
-          final Uri url = Uri.parse(updateUrl.isNotEmpty ? updateUrl : 'https://github.com/ABT-BILGISAYAR-LTD-STI/rdgen/releases/latest');
+          final Uri url = Uri.parse(updateUrl.isNotEmpty ? updateUrl : 'https://github.com/ABT-BILGISAYAR-LTD-STI/AcilBir-Generator/releases/latest');
           await launchUrl(url);
         }
       };

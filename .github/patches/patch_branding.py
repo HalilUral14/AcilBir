@@ -124,10 +124,9 @@ def main():
         replace_in_file(rc_file, r'VALUE\s+"CompanyName",\s+"[^"]+"', f'VALUE "CompanyName", "{compname}\\0"')
         replace_in_file(rc_file, r'VALUE\s+"LegalCopyright",\s+"[^"]+"', f'VALUE "LegalCopyright", "Copyright (C) 2026 {compname}. All rights reserved.\\0"')
 
-    # Windows Service name & Mutex
-    replace_exact("src/platform/windows.rs", 'const SERVICE_NAME: &str = "RustDesk";', f'const SERVICE_NAME: &str = "{appname}";')
-    replace_exact("src/platform/windows.rs", 'const SERVICE_NAME: &str = "rustdesk";', f'const SERVICE_NAME: &str = "{clean_id}";')
-    replace_exact("libs/portable/src/main.rs", 'const APP_PREFIX: &str = "rustdesk";', f'const APP_PREFIX: &str = "{appname}";')
+    # Portable prefix
+    replace_exact("libs/portable/src/main.rs", 'const APP_PREFIX: &str = "rustdesk";', f'const APP_PREFIX: &str = "{clean_id}";')
+    replace_exact("libs/portable/src/main.rs", 'const APPNAME_RUNTIME_ENV_KEY: &str = "RUSTDESK_APPNAME";', f'const APPNAME_RUNTIME_ENV_KEY: &str = "{clean_id.upper()}_APPNAME";')
 
     # MSI packaging
     replace_exact("res/msi/Package/License.rtf", "Purslane Tech Pte. Ltd.", compname)
