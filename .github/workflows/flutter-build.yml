@@ -281,6 +281,10 @@ jobs:
         shell: bash
         run: echo "SODIUM_LIB_DIR=$VCPKG_ROOT/installed/${{ matrix.job.vcpkg-triplet }}/lib" >> "$GITHUB_ENV"
 
+      - name: Apply branding and dynamic versioning
+        run: |
+          python3 ${{ github.workspace }}/.github/patches/patch_branding.py
+
       - name: Build rustdesk
         run: |
           # Windows: build RustDesk
@@ -1151,6 +1155,10 @@ jobs:
           name: librustdesk.so.${{ matrix.job.target }}
           path: ./target/${{ matrix.job.target }}/release/liblibrustdesk.so
 
+      - name: Apply branding and dynamic versioning
+        run: |
+          python3 ${{ github.workspace }}/.github/patches/patch_branding.py
+
       - name: Build rustdesk
         shell: bash
         env:
@@ -1631,6 +1639,7 @@ jobs:
             cat ~/.cargo/config
             # start build
             pushd /workspace
+            python3 /workspace/.github/patches/patch_branding.py
             export VCPKG_ROOT=/opt/artifacts/vcpkg
             if [[ "${{ matrix.job.arch }}" == "aarch64" ]]; then
               export JOBS="--jobs 3"
