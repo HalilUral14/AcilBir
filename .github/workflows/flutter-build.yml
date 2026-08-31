@@ -861,6 +861,8 @@ jobs:
 
       - name: Codesign app and create signed dmg
         if: env.MACOS_P12_BASE64 != null && env.UPLOAD_ARTIFACT == 'true'
+        env:
+          NOTARIZE_JSON: ${{ secrets.MACOS_NOTARIZE_JSON }}
         run: |
           # Patch create-dmg to give more attempts to unmount image
           CREATE_DMG="$(command -v create-dmg)"
@@ -880,10 +882,11 @@ jobs:
           create-dmg --icon "$APP_NAME" 200 190 --hide-extension "$APP_NAME" --window-size 800 400 --app-drop-link 600 185 "$DMG_NAME" "$APP_PATH"
           codesign --force --options runtime --timestamp -s "${{ secrets.MACOS_CODESIGN_IDENTITY }}" --deep --strict "$DMG_NAME" -vvv
 
-          # Prepare Apple Notary credentials from MACOS_NOTARIZE_JSON
+          # Prepare Apple Notary credentials from NOTARIZE_JSON environment variable
           python3 -c '
-          import json, os, sys, base64
-          raw = """${{ secrets.MACOS_NOTARIZE_JSON }}""".strip()
+          import os, json, sys, base64
+
+          raw = os.environ.get("NOTARIZE_JSON", "").strip()
           if raw:
               try:
                   data = json.loads(base64.b64decode(raw).decode("utf-8"))
@@ -891,15 +894,20 @@ jobs:
                   try:
                       data = json.loads(raw)
                   except Exception as e:
-                      print(f"JSON Parse Error: {e}")
+                      print("JSON Parse Error:", e)
                       sys.exit(0)
-              
+
               os.makedirs("/tmp/apple_notary", exist_ok=True)
+              key_id = data.get("key_id", "")
+              issuer_id = data.get("issuer_id", "")
+              private_key = data.get("private_key", "")
+
               with open("/tmp/apple_notary/AuthKey.p8", "w") as f:
-                  f.write(data.get("private_key", ""))
+                  f.write(private_key)
+
               with open("/tmp/apple_notary/credentials.env", "w") as f:
-                  f.write(f"KEY_ID={data.get(\"key_id\", \"\")}\n")
-                  f.write(f"ISSUER_ID={data.get(\"issuer_id\", \"\")}\n")
+                  f.write("KEY_ID=" + key_id + "\n")
+                  f.write("ISSUER_ID=" + issuer_id + "\n")
           '
 
           if [ -f "/tmp/apple_notary/credentials.env" ]; then
