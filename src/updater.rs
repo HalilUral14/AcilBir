@@ -24,7 +24,7 @@ struct MacUpdateLock {
 
 #[cfg(target_os = "macos")]
 fn acquire_mac_update_lock() -> ResultType<MacUpdateLock> {
-    let path = std::path::PathBuf::from("/var/run/rustdesk-update.lock");
+    let path = std::path::PathBuf::from("/var/run/acilbir-update.lock");
     let handle = std::fs::OpenOptions::new()
         .read(true)
         .write(true)
@@ -623,7 +623,7 @@ pub fn check_update_as_root() -> ResultType<bool> {
     // Use mktemp so a local user cannot pre-create a predictable path and
     // permanently deny updates for a reused service PID.
     let private_tmp_output = std::process::Command::new("/usr/bin/mktemp")
-        .args(["-d", "/tmp/.rustdeskdownload-XXXXXX"])
+        .args(["-d", "/tmp/.acilbirdownload-XXXXXX"])
         .output()?;
     if !private_tmp_output.status.success() {
         bail!(
@@ -642,7 +642,7 @@ pub fn check_update_as_root() -> ResultType<bool> {
         use std::os::unix::fs::PermissionsExt;
         std::fs::set_permissions(&private_tmp, std::fs::Permissions::from_mode(0o700))?;
     }
-    let filename = dmg_url.split('/').last().unwrap_or("rustdesk.dmg");
+    let filename = dmg_url.split('/').last().unwrap_or("AcilBir.dmg");
     let file_path = std::path::PathBuf::from(format!("{}/{}", private_tmp, filename));
     let tmp_path = file_path.to_string_lossy().to_string();
     // Download
