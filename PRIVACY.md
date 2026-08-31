@@ -2,7 +2,7 @@
 
 Last updated: August 2026
 
-AcilBir Remote Desktop ("the Application") is an open-source remote support and device management client provided by ABT Bilgisayar.
+AcilBir Remote Desktop ("the Application") is an open-source remote support and device management client provided by ABT Bilgisayar Programlama ve Tic.Ltd.Sti..
 
 ### 1. Information We Process
 To provide remote desktop connectivity and technical support services, the Application processes the following technical and account information:
