@@ -1039,6 +1039,7 @@ pub async fn do_check_software_update() -> hbb_common::ResultType<()> {
         }
     }
 
+    log::info!("AcilBir Oto-Guncelleme: API'den direkt dosya linki bulundu: {}", target_asset_url);
     let response_url = target_asset_url;
     if get_version_number(&latest_release_version) > get_version_number(crate::VERSION) {
         #[cfg(feature = "flutter")]
