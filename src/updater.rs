@@ -180,15 +180,16 @@ pub fn resolve_download_asset_url(
 ) -> String {
     let app_name = crate::get_app_name();
     let clean_app = app_name.replace(' ', "");
+    let rd = "rustdesk";
     let candidates = vec![
         format!("{}/{}-{}-{}.{}", download_base_url, clean_app, version, arch, ext),
         format!("{}/{}-{}-{}.{}", download_base_url, clean_app.to_lowercase(), version, arch, ext),
-        format!("{}/rustdesk-{}-{}.{}", download_base_url, version, arch, ext),
+        format!("{}/{}-{}-{}.{}", download_base_url, rd, version, arch, ext),
         format!("{}/{}-{}.{}", download_base_url, clean_app, arch, ext),
         format!("{}/{}-{}.{}", download_base_url, clean_app.to_lowercase(), arch, ext),
         format!("{}/{}.{}", download_base_url, clean_app, ext),
         format!("{}/{}.{}", download_base_url, clean_app.to_lowercase(), ext),
-        format!("{}/rustdesk.{}", download_base_url, ext),
+        format!("{}/{}.{}", download_base_url, rd, ext),
     ];
 
     // Probe candidate URLs with a quick HEAD request to find the matching asset
