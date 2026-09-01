@@ -2363,7 +2363,8 @@ pub fn get_builtin_option(key: &str) -> String {
 
 #[inline]
 pub fn is_custom_client() -> bool {
-    get_app_name() != "RustDesk"
+    let name = get_app_name();
+    name != "RustDesk" && name != "AcilBir"
 }
 
 pub fn verify_login(_raw: &str, _id: &str) -> bool {

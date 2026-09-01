@@ -2678,18 +2678,20 @@ pub fn main_get_common(key: String) -> String {
             }
         } else if key.starts_with("download-file-") {
             let _version = key.replace("download-file-", "");
+            let app_name = crate::get_app_name();
+            let clean_app = app_name.replace(' ', "");
             #[cfg(target_os = "windows")]
             return match (
                 crate::platform::windows::is_msi_installed(),
                 crate::common::is_custom_client(),
             ) {
                 (Ok(true), false) => match crate::platform::windows::release_arch_suffix() {
-                    Some(arch) => format!("rustdesk-{_version}-{arch}.msi"),
+                    Some(arch) => format!("{clean_app}-{_version}-{arch}.msi"),
                     None => "error:unsupported".to_owned(),
                 },
                 (Ok(true), true) | (Ok(false), _) => {
                     match crate::platform::windows::release_arch_suffix() {
-                        Some(arch) => format!("rustdesk-{_version}-{arch}.exe"),
+                        Some(arch) => format!("{clean_app}-{_version}-{arch}.exe"),
                         None => "error:unsupported".to_owned(),
                     }
                 }
@@ -2701,9 +2703,9 @@ pub fn main_get_common(key: String) -> String {
             #[cfg(target_os = "macos")]
             {
                 return if cfg!(target_arch = "x86_64") {
-                    format!("rustdesk-{_version}-x86_64.dmg")
+                    format!("{clean_app}-{_version}-x86_64.dmg")
                 } else if cfg!(target_arch = "aarch64") {
-                    format!("rustdesk-{_version}-aarch64.dmg")
+                    format!("{clean_app}-{_version}-aarch64.dmg")
                 } else {
                     "error:unsupported".to_owned()
                 };

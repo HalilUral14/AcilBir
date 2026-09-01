@@ -172,6 +172,40 @@ fn start_auto_update_check_(rx_msg: Receiver<UpdateMsg>) {
     }
 }
 
+pub fn resolve_download_asset_url(
+    download_base_url: &str,
+    version: &str,
+    arch: &str,
+    ext: &str,
+) -> String {
+    let app_name = crate::get_app_name();
+    let clean_app = app_name.replace(' ', "");
+    let candidates = vec![
+        format!("{}/{}-{}-{}.{}", download_base_url, clean_app, version, arch, ext),
+        format!("{}/{}-{}-{}.{}", download_base_url, clean_app.to_lowercase(), version, arch, ext),
+        format!("{}/rustdesk-{}-{}.{}", download_base_url, version, arch, ext),
+        format!("{}/{}-{}.{}", download_base_url, clean_app, arch, ext),
+        format!("{}/{}-{}.{}", download_base_url, clean_app.to_lowercase(), arch, ext),
+        format!("{}/{}.{}", download_base_url, clean_app, ext),
+        format!("{}/{}.{}", download_base_url, clean_app.to_lowercase(), ext),
+        format!("{}/rustdesk.{}", download_base_url, ext),
+    ];
+
+    // Probe candidate URLs with a quick HEAD request to find the matching asset
+    for candidate in &candidates {
+        if let Ok(client) = create_http_client_with_url_strict(candidate) {
+            if let Ok(resp) = client.head(candidate).timeout(Duration::from_secs(3)).send() {
+                if resp.status().is_success() {
+                    return candidate.clone();
+                }
+            }
+        }
+    }
+
+    // Default to the first candidate if probe cannot reach server
+    candidates[0].clone()
+}
+
 fn check_update(manually: bool) -> ResultType<()> {
     // On macOS, auto-update is handled by check_update_as_root() in the service process.
     // The shared check_update() path is only used for manual update checks from the GUI.
@@ -193,25 +227,27 @@ fn check_update(manually: bool) -> ResultType<()> {
     if update_url.is_empty() {
         log::debug!("No update available.");
     } else {
-        let download_url = update_url.replace("tag", "download");
-        let version = download_url.split('/').last().unwrap_or_default();
+        let is_direct_asset = update_url.ends_with(".exe")
+            || update_url.ends_with(".msi")
+            || update_url.ends_with(".dmg")
+            || update_url.ends_with(".deb")
+            || update_url.ends_with(".apk");
+        let download_base = update_url.replace("tag", "download");
+        let version = download_base.split('/').last().unwrap_or_default();
         #[cfg(target_os = "windows")]
-        let download_url = if cfg!(feature = "flutter") {
+        let download_url = if is_direct_asset {
+            update_url.clone()
+        } else if cfg!(feature = "flutter") {
             let Some(arch) = crate::platform::windows::release_arch_suffix() else {
                 bail!(
                     "Unsupported Windows release architecture: {}",
                     std::env::consts::ARCH
                 );
             };
-            format!(
-                "{}/rustdesk-{}-{}.{}",
-                download_url,
-                version,
-                arch,
-                if update_msi { "msi" } else { "exe" }
-            )
+            let ext = if update_msi { "msi" } else { "exe" };
+            resolve_download_asset_url(&download_base, version, &arch, ext)
         } else {
-            format!("{}/rustdesk-{}-x86-sciter.exe", download_url, version)
+            resolve_download_asset_url(&download_base, version, "x86-sciter", "exe")
         };
         log::debug!("New version available: {}", &version);
         let client = create_http_client_with_url_strict(&download_url)?;
@@ -609,10 +645,17 @@ pub fn check_update_as_root() -> ResultType<bool> {
         log::info!("[root-update] No update available.");
         return Ok(false);
     }
-    let download_url = update_url.replace("tag", "download");
-    let version = download_url.split('/').last().unwrap_or_default().to_string();
-    let arch = if std::env::consts::ARCH == "aarch64" { "aarch64" } else { "x86_64" };
-    let dmg_url = format!("{}/rustdesk-{}-{}.dmg", download_url, version, arch);
+    let is_direct_asset = update_url.ends_with(".dmg");
+    let (dmg_url, version) = if is_direct_asset {
+        let version = update_url.split('/').nth_back(1).unwrap_or_default().to_string();
+        (update_url.clone(), version)
+    } else {
+        let download_base = update_url.replace("tag", "download");
+        let version = download_base.split('/').last().unwrap_or_default().to_string();
+        let arch = if std::env::consts::ARCH == "aarch64" { "aarch64" } else { "x86_64" };
+        let url = resolve_download_asset_url(&download_base, &version, arch, "dmg");
+        (url, version)
+    };
     log::info!("[root-update] New version: {}, downloading from {}", version, dmg_url);
     // Validate URL against GitHub release allowlist before downloading as root
     let Some(file_path_validated) = get_update_download_file_from_url(&dmg_url) else {
