@@ -168,6 +168,7 @@ pub fn core_main() -> Option<Vec<String>> {
         }
     }
     hbb_common::init_log(false, &log_name);
+    log::info!("⚡ AcilBir Client initialized (v{} - {}) [acilbir.com]", crate::VERSION, crate::BUILD_DATE);
 
     // linux uni (url) go here.
     #[cfg(all(target_os = "linux", feature = "flutter"))]

@@ -2460,11 +2460,11 @@ class _AboutState extends State<_About> {
                   ).marginSymmetric(vertical: 4.0)),
               InkWell(
                   onTap: () {
-                    launchUrlString('https://rustdesk.com');
+                    launchUrlString('https://acilbir.com');
                   },
                   child: Text(
-                    translate('Website'),
-                    style: linkStyle,
+                    'AcilBir Destek & Web Portalı',
+                    style: linkStyle.copyWith(color: MyTheme.accent, fontWeight: FontWeight.bold),
                   ).marginSymmetric(vertical: 4.0)),
               Container(
                 decoration: const BoxDecoration(color: Color(0xFF2c8cff)),

@@ -247,7 +247,7 @@ class _DesktopHomePageState extends State<DesktopHomePage>
                       onDoubleTap: () {
                         Clipboard.setData(
                             ClipboardData(text: model.serverId.text));
-                        showToast(translate("Copied"));
+                        showToast("AcilBir ID kopyalandı");
                       },
                       child: TextFormField(
                         controller: model.serverId,
@@ -343,7 +343,7 @@ class _DesktopHomePageState extends State<DesktopHomePage>
                             if (showOneTime) {
                               Clipboard.setData(
                                   ClipboardData(text: model.serverPasswd.text));
-                              showToast(translate("Copied"));
+                              showToast("AcilBir geçici şifre kopyalandı");
                             }
                           },
                           child: TextFormField(
@@ -427,6 +427,37 @@ class _DesktopHomePageState extends State<DesktopHomePage>
           ),
           SizedBox(
             height: 10.0,
+          ),
+          Container(
+            margin: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: MyTheme.accent.withOpacity(0.12),
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: MyTheme.accent.withOpacity(0.35), width: 1),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 7,
+                  height: 7,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF00C853),
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  'AcilBir Güvenli Bağlantı',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: MyTheme.accent,
+                  ),
+                ),
+              ],
+            ),
           ),
           if (!isOutgoingOnly)
             Text(
