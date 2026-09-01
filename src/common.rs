@@ -1025,6 +1025,20 @@ pub async fn do_check_software_update() -> hbb_common::ResultType<()> {
         }
     }
 
+    #[cfg(target_os = "android")]
+    {
+        let arch = if std::env::consts::ARCH == "aarch64" { "arm64-v8a" } else if std::env::consts::ARCH == "arm" { "armeabi-v7a" } else { "x86_64" };
+        for asset in &resp.assets {
+            if asset.platform.starts_with("android") && asset.browser_download_url.ends_with(".apk") {
+                // If specific arch apk is found, use it. Otherwise fallback to any apk.
+                if asset.browser_download_url.contains(arch) || target_asset_url == resp.url {
+                    target_asset_url = asset.browser_download_url.clone();
+                    latest_release_version = asset.version.clone();
+                }
+            }
+        }
+    }
+
     let response_url = target_asset_url;
     if get_version_number(&latest_release_version) > get_version_number(crate::VERSION) {
         #[cfg(feature = "flutter")]
