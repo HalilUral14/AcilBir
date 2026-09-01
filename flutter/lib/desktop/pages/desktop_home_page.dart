@@ -617,7 +617,9 @@ class _DesktopHomePageState extends State<DesktopHomePage>
       bool? closeButton,
       String? closeOption}) {
     if (bind.mainGetBuildinOption(key: kOptionHideHelpCards) == 'Y' &&
-        content != 'install_daemon_tip') {
+        content != 'install_daemon_tip' &&
+        !title.contains('Güncelleme') &&
+        !title.toLowerCase().contains('update')) {
       return const SizedBox();
     }
     void closeCard() async {
@@ -747,11 +749,12 @@ class _DesktopHomePageState extends State<DesktopHomePage>
   void initState() {
     super.initState();
 
-    // AcilBir: Zorunlu Giriş/Kayıt Kontrolü
+    // AcilBir: Zorunlu Giriş/Kayıt Kontrolü & Güncelleme Kontrolü
     Future.delayed(const Duration(milliseconds: 500), () {
       if (!gFFI.userModel.isLogin) {
         loginDialog();
       }
+      checkUpdate();
     });
 
     _updateTimer = periodic_immediate(const Duration(seconds: 1), () async {
