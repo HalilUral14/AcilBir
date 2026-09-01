@@ -491,6 +491,22 @@ pub struct VersionCheckRequest {
 pub struct VersionCheckResponse {
     #[serde(default)]
     pub url: String,
+    #[serde(default)]
+    pub tag_name: String,
+    #[serde(default)]
+    pub assets: Vec<VersionCheckAsset>,
+}
+
+#[derive(Debug, Default, Deserialize, Serialize, Clone)]
+pub struct VersionCheckAsset {
+    #[serde(default)]
+    pub browser_download_url: String,
+    #[serde(default)]
+    pub name: String,
+    #[serde(default)]
+    pub platform: String,
+    #[serde(default)]
+    pub version: String,
 }
 
 pub const VER_TYPE_RUSTDESK_CLIENT: &str = "rustdesk-client";

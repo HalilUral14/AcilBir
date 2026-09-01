@@ -978,9 +978,54 @@ pub async fn do_check_software_update() -> hbb_common::ResultType<()> {
     };
     let bytes = latest_release_response.bytes().await?;
     let resp: hbb_common::VersionCheckResponse = serde_json::from_slice(&bytes)?;
-    let response_url = resp.url;
-    let latest_release_version = response_url.rsplit('/').next().unwrap_or_default();
+    
+    let mut target_asset_url = resp.url.clone();
+    let mut latest_release_version = resp.tag_name.clone();
+    if latest_release_version.is_empty() {
+        latest_release_version = resp.url.rsplit('/').next().unwrap_or_default().to_string();
+    }
 
+    #[cfg(target_os = "windows")]
+    {
+        let ext_filter = if crate::platform::is_msi_installed().unwrap_or(false) && !crate::is_custom_client() {
+            ".msi"
+        } else {
+            ".exe"
+        };
+        for asset in &resp.assets {
+            if asset.platform.starts_with("windows") && asset.browser_download_url.ends_with(ext_filter) {
+                target_asset_url = asset.browser_download_url.clone();
+                latest_release_version = asset.version.clone();
+                break;
+            }
+        }
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        let arch = if std::env::consts::ARCH == "aarch64" { "aarch64" } else { "x86_64" };
+        for asset in &resp.assets {
+            if asset.platform.starts_with("macos") && asset.platform.contains(arch) {
+                target_asset_url = asset.browser_download_url.clone();
+                latest_release_version = asset.version.clone();
+                break;
+            }
+        }
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        let arch = if std::env::consts::ARCH == "aarch64" { "aarch64" } else { "x86_64" };
+        for asset in &resp.assets {
+            if asset.platform.contains(arch) && (asset.browser_download_url.ends_with(".deb") || asset.browser_download_url.ends_with(".AppImage")) {
+                target_asset_url = asset.browser_download_url.clone();
+                latest_release_version = asset.version.clone();
+                break;
+            }
+        }
+    }
+
+    let response_url = target_asset_url;
     if get_version_number(&latest_release_version) > get_version_number(crate::VERSION) {
         #[cfg(feature = "flutter")]
         {
