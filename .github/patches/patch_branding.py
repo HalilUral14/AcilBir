@@ -267,6 +267,7 @@ def main():
     replace_exact("flutter/lib/main.dart", "title: 'RustDesk'", f"title: '{appname}'")
     replace_exact("flutter/lib/desktop/widgets/tabbar_widget.dart", '"RustDesk"', f'"{appname}"')
     replace_exact("flutter/lib/web/bridge.dart", "return 'RustDesk';", f"return '{appname}';")
+    replace_exact("flutter/lib/web/bridge.dart", 'name != "RustDesk" && name != "AcilBir"', f'name != "RustDesk" && name != "{appname}"')
     replace_exact("flutter/lib/desktop/pages/desktop_setting_page.dart", "Purslane Tech Pte. Ltd.", compname)
     replace_exact("flutter/lib/desktop/pages/desktop_setting_page.dart", "Purslane Ltd.", compname)
 

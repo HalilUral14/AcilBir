@@ -2676,6 +2676,42 @@ pub fn main_get_common(key: String) -> String {
                     format!("error:{}", e)
                 }
             }
+        } else if key.starts_with("resolve-download-url-") {
+            let base_url = key.replace("resolve-download-url-", "");
+            let version = base_url.split('/').last().unwrap_or_default();
+            #[cfg(target_os = "windows")]
+            {
+                let update_msi = crate::platform::windows::is_msi_installed().unwrap_or(false)
+                    && !crate::common::is_custom_client();
+                let ext = if update_msi { "msi" } else { "exe" };
+                if let Some(arch) = crate::platform::windows::release_arch_suffix() {
+                    return crate::updater::resolve_download_asset_url(&base_url, version, &arch, ext);
+                } else {
+                    return "error:unsupported".to_owned();
+                }
+            }
+            #[cfg(target_os = "macos")]
+            {
+                let arch = if cfg!(target_arch = "aarch64") {
+                    "aarch64"
+                } else {
+                    "x86_64"
+                };
+                return crate::updater::resolve_download_asset_url(&base_url, version, arch, "dmg");
+            }
+            #[cfg(target_os = "linux")]
+            {
+                let arch = if cfg!(target_arch = "aarch64") {
+                    "aarch64"
+                } else {
+                    "x86_64"
+                };
+                return crate::updater::resolve_download_asset_url(&base_url, version, arch, "deb");
+            }
+            #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
+            {
+                return base_url;
+            }
         } else if key.starts_with("download-file-") {
             let _version = key.replace("download-file-", "");
             let app_name = crate::get_app_name();

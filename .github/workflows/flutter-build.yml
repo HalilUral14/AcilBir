@@ -488,6 +488,10 @@ jobs:
           head -n 100 "${VCPKG_ROOT}/buildtrees/ffmpeg/build-${{ matrix.job.vcpkg-triplet }}-rel-out.log" || true
         shell: bash
 
+      - name: Apply branding and dynamic versioning
+        run: |
+          python3 ${{ github.workspace }}/.github/patches/patch_branding.py
+
       - name: Build rustdesk
         id: build
         shell: bash
@@ -650,6 +654,10 @@ jobs:
         with:
           name: bridge-artifact
           path: ./
+
+      - name: Apply branding and dynamic versioning
+        run: |
+          python3 ${{ github.workspace }}/.github/patches/patch_branding.py
 
       - name: Build rustdesk lib
         run: |
@@ -867,7 +875,7 @@ jobs:
         if: env.UPLOAD_ARTIFACT == 'true'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: unsigned-macos-${{ matrix.job.arch }}
+          name: rustdesk-unsigned-macos-${{ matrix.job.arch }}
           path: "*.dmg"
 
       - name: Codesign app and create signed dmg
@@ -1373,6 +1381,10 @@ jobs:
         with:
           name: librustdesk.so.i686-linux-android
           path: ./flutter/android/app/src/main/jniLibs/x86
+
+      - name: Apply branding and dynamic versioning
+        run: |
+          python3 ${{ github.workspace }}/.github/patches/patch_branding.py
 
       - name: Build rustdesk
         shell: bash
@@ -1966,6 +1978,7 @@ jobs:
             cat ~/.cargo/config
             # start build
             pushd /workspace
+            python3 /workspace/.github/patches/patch_branding.py
             export VCPKG_ROOT=/opt/artifacts/vcpkg
             # use the .so built on the runner; build.py checks it is the pinned checkout
             export DRMTAP_PREBUILT_DIR=/workspace/third_party/libdrmtap/build-pkg
@@ -2249,6 +2262,7 @@ jobs:
             fi
             head -n 100 "${VCPKG_ROOT}/buildtrees/ffmpeg/build-${{ matrix.job.vcpkg-triplet }}-rel-out.log" || true
             # build rustdesk
+            python3 ./.github/patches/patch_branding.py
             python3 ./res/inline-sciter.py
             export CARGO_INCREMENTAL=0
             cargo build --locked --features inline${{ matrix.job.extra_features }} --release --bins --jobs 1

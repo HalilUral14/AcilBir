@@ -3774,9 +3774,13 @@ pub fn try_remove_temp_update_files() {
         if let Ok(entry) = entry {
             let path = entry.path();
             if let Some(file_name) = path.file_name().and_then(|n| n.to_str()) {
-                // Match files like rustdesk-*.msi or rustdesk-*.exe
-                if file_name.starts_with("rustdesk-")
-                    && (file_name.ends_with(".msi") || file_name.ends_with(".exe"))
+                let lower_name = file_name.to_lowercase();
+                let app_prefix = format!("{}-", crate::get_app_name().to_lowercase());
+                // Match files like rustdesk-*.msi, acilbir-*.exe, etc.
+                if (lower_name.starts_with("rustdesk-")
+                    || lower_name.starts_with("acilbir-")
+                    || lower_name.starts_with(&app_prefix))
+                    && (lower_name.ends_with(".msi") || lower_name.ends_with(".exe"))
                 {
                     // Skip files modified within the last hour to avoid deleting files being downloaded
                     if let Ok(metadata) = std::fs::metadata(&path) {
@@ -3997,8 +4001,8 @@ pub fn try_kill_rustdesk_main_window_process() -> ResultType<()> {
     }
     for (_, p) in sys.processes().iter() {
         let p_name = p.name().to_lowercase();
-        // name equal
-        if !(p_name == app_name || p_name == app_name.clone() + ".exe") {
+        // name equal (match custom app_name or default rustdesk)
+        if !(p_name == app_name || p_name == format!("{app_name}.exe") || p_name == "rustdesk" || p_name == "rustdesk.exe") {
             continue;
         }
         // arg more than 1

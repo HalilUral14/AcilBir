@@ -21,17 +21,23 @@ void handleUpdate(String releasePageUrl) {
       releasePageUrl.endsWith('.apk');
 
   if (!isDirectAsset && releasePageUrl.contains('/tag/')) {
-    downloadUrl = releasePageUrl.replaceAll('tag', 'download');
-    String version = downloadUrl.substring(downloadUrl.lastIndexOf('/') + 1);
-    final String downloadFile =
-        bind.mainGetCommonSync(key: 'download-file-$version');
-    if (downloadFile.startsWith('error:')) {
-      final error = downloadFile.replaceFirst('error:', '');
-      msgBox(gFFI.sessionId, 'custom-nocancel-nook-hasclose', 'Error', error,
-          releasePageUrl, gFFI.dialogManager);
-      return;
+    final baseDownloadUrl = releasePageUrl.replaceAll('tag', 'download');
+    final String resolvedUrl =
+        bind.mainGetCommonSync(key: 'resolve-download-url-$baseDownloadUrl');
+    if (resolvedUrl.isNotEmpty && !resolvedUrl.startsWith('error:')) {
+      downloadUrl = resolvedUrl;
+    } else {
+      String version = baseDownloadUrl.substring(baseDownloadUrl.lastIndexOf('/') + 1);
+      final String downloadFile =
+          bind.mainGetCommonSync(key: 'download-file-$version');
+      if (downloadFile.startsWith('error:')) {
+        final error = downloadFile.replaceFirst('error:', '');
+        msgBox(gFFI.sessionId, 'custom-nocancel-nook-hasclose', 'Error', error,
+            releasePageUrl, gFFI.dialogManager);
+        return;
+      }
+      downloadUrl = '$baseDownloadUrl/$downloadFile';
     }
-    downloadUrl = '$downloadUrl/$downloadFile';
   }
 
   SimpleWrapper downloadId = SimpleWrapper('');
