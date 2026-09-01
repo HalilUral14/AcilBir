@@ -106,24 +106,15 @@ class _DesktopHomePageState extends State<DesktopHomePage>
         ),
         onPressed: openTicketSystem,
       ).marginSymmetric(horizontal: 8, vertical: 4),
-      FutureBuilder<Widget>(
-        future: Future.value(
-            Obx(() => buildHelpCards(stateGlobal.updateUrl.value))),
-        builder: (_, data) {
-          if (data.hasData) {
-            if (isIncomingOnly) {
-              if (isInHomePage()) {
-                Future.delayed(Duration(milliseconds: 300), () {
-                  _updateWindowSize();
-                });
-              }
-            }
-            return data.data!;
-          } else {
-            return const Offstage();
-          }
-        },
-      ),
+      Obx(() {
+        final card = buildHelpCards(stateGlobal.updateUrl.value);
+        if (isIncomingOnly && isInHomePage()) {
+          Future.delayed(const Duration(milliseconds: 300), () {
+            _updateWindowSize();
+          });
+        }
+        return card;
+      }),
     ];
     if (isIncomingOnly) {
       children.addAll([

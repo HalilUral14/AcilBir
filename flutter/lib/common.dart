@@ -4113,8 +4113,8 @@ void checkUpdate() {
             stateGlobal.updateNewVersion.value = remoteVer;
             stateGlobal.updateUrl.value = downloadUrl;
 
-            // Otomatik güncelleme: Kurulu masaüstü istemcilerde (Windows/macOS) doğrudan başlat
-            if ((isWindows || isMacOS) && bind.mainIsInstalled()) {
+            // Otomatik güncelleme: Hem kurulu hem taşınabilir masaüstü istemcilerde indirme diyaloğunu doğrudan başlat
+            if (isWindows || isMacOS) {
               Timer(const Duration(milliseconds: 600), () {
                 handleUpdate(downloadUrl);
               });
