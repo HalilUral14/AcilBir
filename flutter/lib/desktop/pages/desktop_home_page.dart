@@ -440,7 +440,7 @@ class _DesktopHomePageState extends State<DesktopHomePage>
                 ),
                 const SizedBox(width: 6),
                 Text(
-                  'AcilBir Güvenli Bağlantı',
+                  'AcilBir Güvenli Bağlantı (1.4.15 Update Test Başarılı 🚀)',
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
