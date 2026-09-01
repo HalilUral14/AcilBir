@@ -234,20 +234,38 @@ fn check_update(manually: bool) -> ResultType<()> {
             || update_url.ends_with(".apk");
         let download_base = update_url.replace("tag", "download");
         let version = download_base.split('/').last().unwrap_or_default();
-        #[cfg(target_os = "windows")]
         let download_url = if is_direct_asset {
             update_url.clone()
-        } else if cfg!(feature = "flutter") {
-            let Some(arch) = crate::platform::windows::release_arch_suffix() else {
-                bail!(
-                    "Unsupported Windows release architecture: {}",
-                    std::env::consts::ARCH
-                );
-            };
-            let ext = if update_msi { "msi" } else { "exe" };
-            resolve_download_asset_url(&download_base, version, &arch, ext)
         } else {
-            resolve_download_asset_url(&download_base, version, "x86-sciter", "exe")
+            #[cfg(target_os = "windows")]
+            {
+                if cfg!(feature = "flutter") {
+                    let Some(arch) = crate::platform::windows::release_arch_suffix() else {
+                        bail!(
+                            "Unsupported Windows release architecture: {}",
+                            std::env::consts::ARCH
+                        );
+                    };
+                    let ext = if update_msi { "msi" } else { "exe" };
+                    resolve_download_asset_url(&download_base, version, &arch, ext)
+                } else {
+                    resolve_download_asset_url(&download_base, version, "x86-sciter", "exe")
+                }
+            }
+            #[cfg(target_os = "macos")]
+            {
+                let arch = if std::env::consts::ARCH == "aarch64" { "aarch64" } else { "x86_64" };
+                resolve_download_asset_url(&download_base, version, arch, "dmg")
+            }
+            #[cfg(target_os = "linux")]
+            {
+                let arch = if std::env::consts::ARCH == "aarch64" { "aarch64" } else { "x86_64" };
+                resolve_download_asset_url(&download_base, version, arch, "deb")
+            }
+            #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
+            {
+                download_base.clone()
+            }
         };
         log::debug!("New version available: {}", &version);
         let client = create_http_client_with_url_strict(&download_url)?;
