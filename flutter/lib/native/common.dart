@@ -16,7 +16,7 @@ final isWebOnWindows_ = false;
 final isWebOnLinux_ = false;
 final isWebOnMacOS_ = false;
 
-void logUpdateError(String message) {
+void logUpdateError_(String message) {
   try {
     String logDir = '';
     if (Platform.isWindows) {
