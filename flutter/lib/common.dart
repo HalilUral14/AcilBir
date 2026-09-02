@@ -4166,7 +4166,7 @@ void checkUpdate({bool isManual = false}) {
             }
           }
         } else {
-          final errStr = "HTTP request failed with status ${res.statusCode}. Body: ${res.body}";
+          final errStr = "HTTP request to $apiUrl failed with status ${res.statusCode}. Body: ${res.body}";
           debugPrint("AcilBir: $errStr");
           logUpdateError(errStr);
           if (isManual) {
