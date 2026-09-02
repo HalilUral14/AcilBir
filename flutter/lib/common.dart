@@ -4114,7 +4114,9 @@ void checkUpdate({bool isManual = false}) {
           platform = 'ios';
         }
 
-        final String apiUrl = '$_kUpdateApiBaseUrl/$platform';
+        // Remove any trailing slashes to prevent double-slash 404 routing errors in Gin/Nginx
+        final String cleanBaseUrl = _kUpdateApiBaseUrl.replaceAll(RegExp(r'/+$'), '');
+        final String apiUrl = '$cleanBaseUrl/$platform';
         final res = await http.get(Uri.parse(apiUrl)).timeout(const Duration(seconds: 15));
 
         if (res.statusCode == 200 && res.body.isNotEmpty) {
