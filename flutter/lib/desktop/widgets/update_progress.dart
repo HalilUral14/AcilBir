@@ -150,8 +150,9 @@ class UpdateProgressState extends State<UpdateProgress> {
   void _onError(String error, {bool isExtractDmg = false}) {
     cancelQueryTimer();
 
-    debugPrint(
-        '${isExtractDmg ? "Extract" : "Download"} new version error: $error');
+    final errStr = '${isExtractDmg ? "Extract" : "Download"} new version error: $error';
+    debugPrint(errStr);
+    logUpdateError(errStr);
     final msgBoxType = 'custom-nocancel-nook-hasclose';
     final msgBoxTitle = 'Error';
     final msgBoxText = 'download-new-version-failed-tip';

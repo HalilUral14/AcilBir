@@ -4081,11 +4081,26 @@ void earlyAssert() {
   assert('\1' == '1');
 }
 
-void checkUpdate() {
+/// Base URL for auto-update API. This is patched by patch_branding.py during CI
+/// to include channel suffix (e.g., /admin, /beta) for different client variants.
+/// DO NOT change the URL format without updating patch_branding.py accordingly.
+const String _kUpdateApiBaseUrl = 'https://acilbir.com/api/software/releases/latest';
+
+/// Tracks the last version the user was notified about, to prevent
+/// repeatedly showing the update dialog for the same version.
+String _lastNotifiedVersion = '';
+
+/// Whether we already auto-opened the update dialog for this session.
+/// Prevents the dialog from re-opening every 5 minutes.
+bool _autoUpdateDialogShownThisSession = false;
+
+void checkUpdate({bool isManual = false}) {
   if (!isWeb) {
-    // Otomatik platforma duyarlı güncelleme kontrolü (Windows, macOS, Linux, Android)
-    Timer(const Duration(seconds: 2), () async {
+    // If it's a manual check, don't wait 2 seconds.
+    final delay = isManual ? const Duration(milliseconds: 100) : const Duration(seconds: 2);
+    Timer(delay, () async {
       try {
+        // Platform tespiti
         String platform = 'windows';
         if (isMacOS) {
           platform = 'macos';
@@ -4097,50 +4112,118 @@ void checkUpdate() {
           platform = 'ios';
         }
 
-        final res = await http.get(Uri.parse('https://acilbir.com/api/software/releases/latest/$platform'));
+        final String apiUrl = '$_kUpdateApiBaseUrl/$platform';
+        final res = await http.get(Uri.parse(apiUrl)).timeout(const Duration(seconds: 15));
+
         if (res.statusCode == 200 && res.body.isNotEmpty) {
-          final data = jsonDecode(res.body);
-          final String remoteVer = data['version']?.toString() ?? '';
-          final String downloadUrl = data['url']?.toString() ?? '';
-          final String remoteUpdatedAt = (data['updated_at'] ?? '').toString();
-          final String currentVer = await bind.mainGetVersion();
-          final String lastKnownUpdatedAt = bind.mainGetLocalOption(key: 'last-applied-build-date');
+          try {
+            final data = jsonDecode(res.body);
+            final String remoteVer = (data['version'] ?? data['tag_name'] ?? '').toString().replaceFirst(RegExp(r'^[vV]'), '');
+            final String downloadUrl = (data['url'] ?? '').toString();
+            final String currentVer = await bind.mainGetVersion();
 
-          final bool isNewerVer = _isNewerVersion(remoteVer, currentVer);
+            final bool isNewerVer = _isNewerVersion(remoteVer, currentVer);
 
-          if (isNewerVer) {
-            debugPrint("AcilBir: $platform için yeni sürüm bulundu: v$remoteVer (mevcut: v$currentVer) ($downloadUrl)");
-            stateGlobal.updateNewVersion.value = remoteVer;
-            stateGlobal.updateUrl.value = downloadUrl;
+            if (isNewerVer && remoteVer.isNotEmpty && downloadUrl.isNotEmpty) {
+              debugPrint("AcilBir: $platform için yeni sürüm bulundu: v$remoteVer (mevcut: v$currentVer)");
+              stateGlobal.updateNewVersion.value = remoteVer;
+              stateGlobal.updateUrl.value = downloadUrl;
 
-            // Otomatik güncelleme: Hem kurulu hem taşınabilir masaüstü istemcilerde indirme diyaloğunu doğrudan başlat
-            if (isWindows || isMacOS) {
-              Timer(const Duration(milliseconds: 600), () {
-                handleUpdate(downloadUrl);
-              });
+              if (isManual || ((isWindows || isMacOS) &&
+                  !_autoUpdateDialogShownThisSession &&
+                  _lastNotifiedVersion != remoteVer)) {
+                _lastNotifiedVersion = remoteVer;
+                _autoUpdateDialogShownThisSession = true;
+                Timer(const Duration(milliseconds: 800), () {
+                  handleUpdate(downloadUrl);
+                });
+              }
+            } else {
+              stateGlobal.updateUrl.value = '';
+              stateGlobal.updateNewVersion.value = '';
+              
+              if (isManual) {
+                msgBox(
+                  gFFI.sessionId,
+                  'custom-nook-hasclose',
+                  'Güncelleme Kontrolü',
+                  'Sisteminiz güncel. Mevcut sürüm: v$currentVer',
+                  '',
+                  gFFI.dialogManager
+                );
+              }
             }
-          } else {
-            // Sürüm zaten güncel veya daha yeni — güncelleme kartını temizle
-            stateGlobal.updateUrl.value = '';
-            stateGlobal.updateNewVersion.value = '';
+          } catch (jsonErr) {
+            final errStr = "JSON parse error: $jsonErr. Body: ${res.body}";
+            debugPrint("AcilBir: $errStr");
+            logUpdateError(errStr);
+            if (isManual) {
+              msgBox(gFFI.sessionId, 'custom-nook-hasclose', 'Hata', 'Sunucu yanıtı okunamadı.', '', gFFI.dialogManager);
+            }
+          }
+        } else {
+          final errStr = "HTTP request failed with status ${res.statusCode}. Body: ${res.body}";
+          debugPrint("AcilBir: $errStr");
+          logUpdateError(errStr);
+          if (isManual) {
+            msgBox(gFFI.sessionId, 'custom-nook-hasclose', 'Hata', 'Güncelleme sunucusuna bağlanılamadı (Kod: ${res.statusCode}).', '', gFFI.dialogManager);
           }
         }
       } catch (e) {
-        debugPrint("AcilBir: Güncelleme kontrolü bildirimi: $e");
+        final errStr = "Güncelleme kontrolü bildirimi: $e";
+        debugPrint("AcilBir: $errStr");
+        logUpdateError(errStr);
+        if (isManual) {
+          msgBox(
+            gFFI.sessionId,
+            'custom-nook-hasclose',
+            'Hata',
+            'Güncelleme kontrolü sırasında bir hata oluştu: $e',
+            '',
+            gFFI.dialogManager
+          );
+        }
       }
     });
   }
 }
 
+/// Sürüm karşılaştırma: '1.4.15-1' > '1.4.15' > '1.4.10' formatını destekler.
+/// 'v' prefix, '-admin', '-beta' suffix'leri otomatik temizlenir.
 bool _isNewerVersion(String remote, String current) {
   try {
-    List<int> r = remote.replaceAll(RegExp(r'[^0-9.]'), '').split('.').map(int.parse).toList();
-    List<int> c = current.replaceAll(RegExp(r'[^0-9.]'), '').split('.').map(int.parse).toList();
-    for (int i = 0; i < r.length && i < c.length; i++) {
-      if (r[i] > c[i]) return true;
-      if (r[i] < c[i]) return false;
+    // v prefix ve kanal suffix'lerini temizle
+    String cleanRemote = remote.replaceFirst(RegExp(r'^[vV]'), '').replaceAll(RegExp(r'-(admin|beta)$'), '');
+    String cleanCurrent = current.replaceFirst(RegExp(r'^[vV]'), '').replaceAll(RegExp(r'-(admin|beta)$'), '');
+
+    // Patch numarasını ayır (1.4.15-1 → main=1.4.15, patch=1)
+    int remotePatch = 0;
+    int currentPatch = 0;
+    if (cleanRemote.contains('-')) {
+      final parts = cleanRemote.split('-');
+      cleanRemote = parts[0];
+      remotePatch = int.tryParse(parts[1]) ?? 0;
     }
-    return r.length > c.length;
+    if (cleanCurrent.contains('-')) {
+      final parts = cleanCurrent.split('-');
+      cleanCurrent = parts[0];
+      currentPatch = int.tryParse(parts[1]) ?? 0;
+    }
+
+    List<int> r = cleanRemote.split('.').map((s) => int.tryParse(s) ?? 0).toList();
+    List<int> c = cleanCurrent.split('.').map((s) => int.tryParse(s) ?? 0).toList();
+
+    // Major.minor.build karşılaştırması
+    final maxLen = r.length > c.length ? r.length : c.length;
+    for (int i = 0; i < maxLen; i++) {
+      final rv = i < r.length ? r[i] : 0;
+      final cv = i < c.length ? c[i] : 0;
+      if (rv > cv) return true;
+      if (rv < cv) return false;
+    }
+
+    // Ana sürüm eşit, patch numarasını karşılaştır
+    return remotePatch > currentPatch;
   } catch (_) {
     return remote != current && remote.isNotEmpty;
   }

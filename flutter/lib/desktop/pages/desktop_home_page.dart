@@ -440,7 +440,7 @@ class _DesktopHomePageState extends State<DesktopHomePage>
                 ),
                 const SizedBox(width: 6),
                 Text(
-                  'AcilBir Güvenli Bağlantı (1.4.15 Update Test Başarılı 🚀)',
+                  'AcilBir Güvenli Bağlantı',
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
@@ -475,7 +475,7 @@ class _DesktopHomePageState extends State<DesktopHomePage>
         if (isInstalled) {
           handleUpdate(updateUrl);
         } else {
-          final Uri url = Uri.parse(updateUrl.isNotEmpty ? updateUrl : 'https://github.com/HalilUral14/AcilBir/releases/latest');
+          final Uri url = Uri.parse(updateUrl.isNotEmpty ? updateUrl : 'https://acilbir.com/download');
           await launchUrl(url);
         }
       };

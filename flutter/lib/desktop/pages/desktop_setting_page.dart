@@ -481,7 +481,7 @@ class _GeneralState extends State<_General> {
     final incomingOnly = bind.isIncomingOnly();
     final outgoingOnly = bind.isOutgoingOnly();
     final showAutoUpdate = (isWindows && bind.mainIsInstalled()) ||
-    (isMacOS && bind.mainIsInstalled() && bind.mainIsInstalledDaemon(prompt: false) && !bind.isCustomClient());
+    (isMacOS && bind.mainIsInstalled() && bind.mainIsInstalledDaemon(prompt: false));
     final children = <Widget>[
       if (!isWeb && !incomingOnly)
         _OptionCheckBox(context, 'Confirm before closing multiple tabs',
@@ -540,7 +540,7 @@ class _GeneralState extends State<_General> {
             ),
           ),
       ],
-      if (!isWeb && !bind.isCustomClient())
+      if (!isWeb)
         _OptionCheckBox(
           context,
           'Check for software update on startup',
@@ -553,6 +553,17 @@ class _GeneralState extends State<_General> {
           'Auto update',
           kOptionAllowAutoUpdate,
           isServer: true,
+        ),
+      if (!isWeb)
+        Container(
+          margin: const EdgeInsets.only(left: 32.0, top: 8.0, bottom: 8.0),
+          child: ElevatedButton.icon(
+            icon: const Icon(Icons.system_update_alt, size: 18),
+            label: Text('Güncellemeleri Kontrol Et'),
+            onPressed: () {
+              checkUpdate(isManual: true);
+            },
+          ),
         ),
       if (isWindows && !outgoingOnly)
         _OptionCheckBox(
@@ -2430,7 +2441,7 @@ class _AboutState extends State<_About> {
       final scrollController = ScrollController();
       return SingleChildScrollView(
         controller: scrollController,
-        child: _Card(title: translate('About RustDesk'), children: [
+        child: _Card(title: translate('AcilBir Hakkında'), children: [
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -2452,7 +2463,7 @@ class _AboutState extends State<_About> {
                       .marginSymmetric(vertical: 4.0)),
               InkWell(
                   onTap: () {
-                    launchUrlString('https://rustdesk.com/privacy.html');
+                    launchUrlString('https://acilbir.com/gizlilik');
                   },
                   child: Text(
                     translate('Privacy Statement'),
@@ -2478,7 +2489,7 @@ class _AboutState extends State<_About> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Copyright © ${DateTime.now().toString().substring(0, 4)} Purslane Tech Pte. Ltd.\n$license',
+                            'Copyright © ${DateTime.now().toString().substring(0, 4)} AcilBir\n$license',
                             style: const TextStyle(color: Colors.white),
                           ),
                           Text(
