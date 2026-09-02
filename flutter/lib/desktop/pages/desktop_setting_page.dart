@@ -554,17 +554,7 @@ class _GeneralState extends State<_General> {
           kOptionAllowAutoUpdate,
           isServer: true,
         ),
-      if (!isWeb)
-        Container(
-          margin: const EdgeInsets.only(left: 32.0, top: 8.0, bottom: 8.0),
-          child: ElevatedButton.icon(
-            icon: const Icon(Icons.system_update_alt, size: 18),
-            label: Text('Güncellemeleri Kontrol Et'),
-            onPressed: () {
-              checkUpdate(isManual: true);
-            },
-          ),
-        ),
+
       if (isWindows && !outgoingOnly)
         _OptionCheckBox(
           context,
@@ -2445,12 +2435,56 @@ class _AboutState extends State<_About> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(
-                height: 8.0,
+              const SizedBox(height: 8.0),
+              // Premium Sürüm ve Güncelleme Kartı
+              Container(
+                margin: const EdgeInsets.only(top: 8.0, bottom: 16.0),
+                padding: const EdgeInsets.all(16.0),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [const Color(0xFF2c8cff).withOpacity(0.1), const Color(0xFF2c8cff).withOpacity(0.02)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  border: Border.all(color: const Color(0xFF2c8cff).withOpacity(0.3), width: 1.5),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'AcilBir İstemcisi',
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Theme.of(context).textTheme.titleLarge?.color),
+                        ),
+                        const SizedBox(height: 4),
+                        SelectionArea(
+                          child: Text(
+                            'Mevcut Sürüm: $version',
+                            style: TextStyle(fontSize: 14, color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.8)),
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (!isWeb)
+                      ElevatedButton.icon(
+                        icon: const Icon(Icons.sync, size: 20, color: Colors.white),
+                        label: const Text('Güncellemeleri Kontrol Et', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF2c8cff),
+                          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          elevation: 3,
+                        ),
+                        onPressed: () {
+                          checkUpdate(isManual: true);
+                        },
+                      ),
+                  ],
+                ),
               ),
-              SelectionArea(
-                  child: Text('${translate('Version')}: $version')
-                      .marginSymmetric(vertical: 4.0)),
               SelectionArea(
                   child: Text('${translate('Build Date')}: $buildDate')
                       .marginSymmetric(vertical: 4.0)),

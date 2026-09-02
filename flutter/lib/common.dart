@@ -4173,8 +4173,10 @@ void checkUpdate({bool isManual = false}) {
             msgBox(gFFI.sessionId, 'custom-nook-hasclose', 'Hata', 'Güncelleme sunucusuna bağlanılamadı (Kod: ${res.statusCode}).', '', gFFI.dialogManager);
           }
         }
-      } catch (e) {
-        final errStr = "Güncelleme kontrolü bildirimi: $e";
+      } catch (e, stackTrace) {
+        // apiUrl might not be defined if the error happens earlier, so we reconstruct it if possible
+        final String cleanBaseUrl = _kUpdateApiBaseUrl.replaceAll(RegExp(r'/+$'), '');
+        final errStr = "Güncelleme kontrolü hatası: $e\nBaseURL: $cleanBaseUrl\nStack: $stackTrace";
         debugPrint("AcilBir: $errStr");
         logUpdateError(errStr);
         if (isManual) {
@@ -4182,7 +4184,7 @@ void checkUpdate({bool isManual = false}) {
             gFFI.sessionId,
             'custom-nook-hasclose',
             'Hata',
-            'Güncelleme kontrolü sırasında bir hata oluştu: $e',
+            'Güncelleme kontrolü sırasında bir ağ/sistem hatası oluştu:\n$e',
             '',
             gFFI.dialogManager
           );
