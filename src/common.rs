@@ -2204,12 +2204,21 @@ pub fn load_custom_client() {
         read_custom_client(data.trim());
         return;
     }
-    let Some(path) = std::env::current_exe().map_or(None, |x| x.parent().map(|x| x.to_path_buf()))
+    let Some(mut path) = std::env::current_exe().map_or(None, |x| x.parent().map(|x| x.to_path_buf()))
     else {
         return;
     };
     #[cfg(target_os = "macos")]
-    let path = path.join("../Resources");
+    {
+        path = path.join("../Resources");
+    }
+    #[cfg(target_os = "linux")]
+    {
+        if path == std::path::PathBuf::from("/usr/bin") || path == std::path::PathBuf::from("/usr/local/bin") {
+            let app_name = crate::get_app_name().to_lowercase();
+            path = std::path::PathBuf::from(format!("/usr/share/{}", app_name));
+        }
+    }
     // AcilBir: custom_.txt'yi de ara (rdgen bu adı kullanıyor)
     for filename in ["custom_.txt", "custom.txt"] {
         let config_path = path.join(filename);
