@@ -3666,6 +3666,11 @@ pub fn handle_custom_client_staging_dir_before_update(
 // Used for auto update and manual update in the main window.
 pub fn update_to(file: &str) -> ResultType<()> {
     if file.ends_with(".exe") {
+        if !is_installed() {
+            std::process::Command::new(file).spawn()?;
+            std::process::exit(0);
+        }
+        
         let custom_client_staging_dir = get_custom_client_staging_dir();
         if crate::is_custom_client() {
             handle_custom_client_staging_dir_before_update(&custom_client_staging_dir)?;

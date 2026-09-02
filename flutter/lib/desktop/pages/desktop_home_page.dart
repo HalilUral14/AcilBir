@@ -470,9 +470,15 @@ class _DesktopHomePageState extends State<DesktopHomePage>
   Widget buildHelpCards(String updateUrl) {
     if (updateUrl.isNotEmpty && !isCardClosed) {
       final isInstalled = (isWindows || isMacOS) && bind.mainIsInstalled();
-      final String btnText = 'Otomatik Güncelle';
+      final canAutoUpdate = isWindows || isMacOS;
+      final String btnText = canAutoUpdate ? 'Otomatik Güncelle' : 'Son Sürümü İndir';
       final GestureTapCallback onPressed = () async {
-        handleUpdate(updateUrl);
+        if (canAutoUpdate) {
+          handleUpdate(updateUrl);
+        } else {
+          final Uri url = Uri.parse(updateUrl.isNotEmpty ? updateUrl : 'https://acilbir.com/download');
+          await launchUrl(url);
+        }
       };
       final newVer = stateGlobal.updateNewVersion.value.isNotEmpty
           ? stateGlobal.updateNewVersion.value
