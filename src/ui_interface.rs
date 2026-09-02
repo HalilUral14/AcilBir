@@ -115,7 +115,17 @@ pub fn install_me(_options: String, _path: String, _silent: bool, _debug: bool) 
 
 #[inline]
 pub fn update_me(_path: String) {
-    goto_install();
+    if _path.is_empty() {
+        goto_install();
+    } else {
+        #[cfg(windows)]
+        std::thread::spawn(move || {
+            let _ = std::process::Command::new(_path).spawn();
+            std::process::exit(0);
+        });
+        #[cfg(not(windows))]
+        goto_install();
+    }
 }
 
 #[inline]
