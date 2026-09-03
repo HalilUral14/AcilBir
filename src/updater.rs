@@ -450,8 +450,7 @@ pub fn get_update_download_file_from_url(url: &str) -> Option<PathBuf> {
         }
     }
 
-    let mut update_dir = hbb_common::config::Config::config_dir();
-    update_dir.push("update");
+    let update_dir = hbb_common::config::Config::path("update");
     if !update_dir.exists() {
         std::fs::create_dir_all(&update_dir).ok();
     }
