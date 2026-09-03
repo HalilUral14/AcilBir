@@ -3822,7 +3822,13 @@ class _LogoState extends State<_Logo> {
             asset,
             fit: BoxFit.contain,
             errorBuilder: (ctx, error, stackTrace) {
-              return Container();
+              // If the downloaded logo is corrupted (e.g. 404 response written as a file),
+              // fallback to the default abt.png
+              return Image.asset(
+                'assets/abt.png',
+                fit: BoxFit.contain,
+                errorBuilder: (ctx, err, stack) => Container(),
+              );
             },
           );
           return Container(
