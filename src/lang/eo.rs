@@ -1,4 +1,4 @@
-lazy_static::lazy_static! {
+﻿lazy_static::lazy_static! {
 pub static ref T: std::collections::HashMap<&'static str, &'static str> =
     [
         ("Status", "Stato"),
@@ -44,7 +44,7 @@ pub static ref T: std::collections::HashMap<&'static str, &'static str> =
         ("id_change_tip", "Nur la signoj a-z, A-Z, 0-9, - (dash), _ (substreko) povas esti uzataj. La unua litero povas esti inter a-z, A-Z. La longeco devas esti inter 6 kaj 16."),
         ("Website", "Retejo"),
         ("About", "Pri"),
-        ("Slogan_tip", "Farita kun koro en ĉi tiu ĥaosa mondo!"),
+        ("Slogan_tip", "ABT Bilgisayar Programlama ve Tic.Ltd.Sti."),
         ("Privacy Statement", "Deklaro Pri Privateco"),
         ("Mute", "Muta"),
         ("Build Date", "konstruada dato"),
@@ -767,5 +767,18 @@ pub static ref T: std::collections::HashMap<&'static str, &'static str> =
         ("whitelist_cidr_tip", "La notacio CIDR estas subtenata, ekzemple 192.168.1.0/24"),
         ("Continue", ""),
         ("Browser didn't open? Use the url below to sign in.", ""),
+            ("Update Check", "Ĝisdatigkontrolo"),
+        ("System is up to date", "Via sistemo estas ĝisdatigita"),
+        ("Current Version", "Nuna versio"),
+        ("Check for Updates", "Kontroli ĝisdatigojn"),
+        ("New version found", "Nova versio trovita"),
+        ("current", "nuna"),
+        ("Server response could not be read", "La servila respondo ne povis esti legita"),
+        ("Could not connect to update server", "Ne eblis konektiĝi al la ĝisdatiga servilo"),
+        ("Code", "Kodo"),
+        ("A network/system error occurred during update check", "Reta/sistema eraro okazis dum la ĝisdatigkontrolo"),
+        ("AcilBir Client", "AcilBir Kliento"),
+        ("AcilBir Support & Web Portal", "AcilBir Subteno kaj Retportalo"),
+            ("Do you want to update now?", "Ĉu vi volas ĝisdatigi nun?"),
     ].iter().cloned().collect();
 }

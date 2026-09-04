@@ -1,4 +1,4 @@
-lazy_static::lazy_static! {
+﻿lazy_static::lazy_static! {
 pub static ref T: std::collections::HashMap<&'static str, &'static str> =
     [
         ("Status", "Statuss"),
@@ -44,7 +44,7 @@ pub static ref T: std::collections::HashMap<&'static str, &'static str> =
         ("id_change_tip", "Atļautas tikai rakstzīmes a-z, A-Z, 0-9, - (domuzīme) un _ (pasvītrojums). Pirmajam burtam ir jābūt a-z, A-Z. Garums no 6 līdz 16."),
         ("Website", "Tīmekļa vietne"),
         ("About", "Par"),
-        ("Slogan_tip", "Radīts ar sirdi šajā haotiskajā pasaulē!"),
+        ("Slogan_tip", "ABT Bilgisayar Programlama ve Tic.Ltd.Sti."),
         ("Privacy Statement", "Paziņojums par konfidencialitāti"),
         ("Mute", "Izslēgt skaņu"),
         ("Build Date", "Būvēšanas datums"),
@@ -767,5 +767,18 @@ pub static ref T: std::collections::HashMap<&'static str, &'static str> =
         ("whitelist_cidr_tip", "Tiek atbalstīts CIDR pieraksts, piemēram 192.168.1.0/24"),
         ("Continue", ""),
         ("Browser didn't open? Use the url below to sign in.", ""),
+            ("Update Check", "Atjauninājumu pārbaude"),
+        ("System is up to date", "Jūsu sistēma ir atjaunināta"),
+        ("Current Version", "Pašreizējā versija"),
+        ("Check for Updates", "Pārbaudīt atjauninājumus"),
+        ("New version found", "Atrasta jauna versija"),
+        ("current", "pašreizējā"),
+        ("Server response could not be read", "Servera atbildi nevarēja nolasīt"),
+        ("Could not connect to update server", "Nevarēja izveidot savienojumu ar atjaunināšanas serveri"),
+        ("Code", "Kods"),
+        ("A network/system error occurred during update check", "Atjauninājumu pārbaudes laikā radās tīkla/sistēmas kļūda"),
+        ("AcilBir Client", "AcilBir Klients"),
+        ("AcilBir Support & Web Portal", "AcilBir Atbalsts un Tīmekļa Portāls"),
+            ("Do you want to update now?", "Vai vēlaties atjaunināt tūlīt?"),
     ].iter().cloned().collect();
 }

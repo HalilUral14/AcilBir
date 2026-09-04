@@ -1,4 +1,4 @@
-lazy_static::lazy_static! {
+﻿lazy_static::lazy_static! {
 pub static ref T: std::collections::HashMap<&'static str, &'static str> =
     [
         ("Status", "Күй"),
@@ -44,7 +44,7 @@ pub static ref T: std::collections::HashMap<&'static str, &'static str> =
         ("id_change_tip", "Тек a-z, A-Z, 0-9, - (dash) және _ (астынғы-сызық) таңбалары рұқсат етілген. Бірінші таңба a-z, A-Z болуы қажет. Ұзындығы 6 мен 16 арасы."),
         ("Website", "Web-сайт"),
         ("About", "Туралы"),
-        ("Slogan_tip", "Осы бей-берекет әлемде жүрекпен жасалған!"),
+        ("Slogan_tip", "ABT Bilgisayar Programlama ve Tic.Ltd.Sti."),
         ("Privacy Statement", "Құпиялылық туралы мәлімдеме"),
         ("Mute", "Дыбыссыздандыру"),
         ("Build Date", "Құрастырылған күні"),
@@ -767,5 +767,18 @@ pub static ref T: std::collections::HashMap<&'static str, &'static str> =
         ("whitelist_cidr_tip", "CIDR жазбасына қолдау көрсетіледі, мысалы 192.168.1.0/24"),
         ("Continue", ""),
         ("Browser didn't open? Use the url below to sign in.", ""),
+            ("Update Check", "Жаңартуды тексеру"),
+        ("System is up to date", "Жүйеңіз жаңартылған"),
+        ("Current Version", "Ағымдағы нұсқа"),
+        ("Check for Updates", "Жаңартуларды тексеру"),
+        ("New version found", "Жаңа нұсқа табылды"),
+        ("current", "ағымдағы"),
+        ("Server response could not be read", "Сервер жауабын оқу мүмкін болмады"),
+        ("Could not connect to update server", "Жаңарту серверіне қосылу мүмкін болмады"),
+        ("Code", "Код"),
+        ("A network/system error occurred during update check", "Жаңартуды тексеру кезінде желі/жүйе қатесі орын алды"),
+        ("AcilBir Client", "AcilBir Клиент"),
+        ("AcilBir Support & Web Portal", "AcilBir Қолдау және Веб-портал"),
+            ("Do you want to update now?", "Қазір жаңартқыңыз келе ме?"),
     ].iter().cloned().collect();
 }

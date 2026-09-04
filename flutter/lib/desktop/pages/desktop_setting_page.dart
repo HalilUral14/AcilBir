@@ -413,6 +413,7 @@ class _GeneralState extends State<_General> {
         if (!isWeb) service(),
         theme(),
         _Card(title: 'Language', children: [language()]),
+        if (!isWeb) updateCard(),
         if (!isWeb) hwcodec(),
         if (!isWeb) audio(context),
         if (!isWeb) record(context),
@@ -420,6 +421,31 @@ class _GeneralState extends State<_General> {
         other()
       ],
     ).marginOnly(bottom: _kListViewBottomMargin);
+  }
+
+  Widget updateCard() {
+    return _Card(
+      title: 'Update',
+      children: [
+        Row(
+          children: [
+            ElevatedButton.icon(
+              icon: const Icon(Icons.sync, size: 18, color: Colors.white),
+              label: Text(
+                translate('Check for Updates'),
+                style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF2c8cff),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              onPressed: () => checkUpdate(isManual: true),
+            ),
+          ],
+        ).marginOnly(left: _kContentHMargin, top: 4, bottom: 8),
+      ],
+    );
   }
 
   Widget theme() {
@@ -843,7 +869,6 @@ class _GeneralState extends State<_General> {
       if (!keys.contains(currentKey)) {
         currentKey = defaultOptionLang;
       }
-      final isOptFixed = isOptionFixed(kCommConfKeyLang);
       return ComboBox(
         keys: keys,
         values: values,
@@ -854,7 +879,7 @@ class _GeneralState extends State<_General> {
           if (!isWeb) reloadAllWindows();
           if (!isWeb) bind.mainChangeLanguage(lang: key);
         },
-        enabled: !isOptFixed,
+        enabled: true,
       ).marginOnly(left: _kContentHMargin);
     });
   }
@@ -2431,7 +2456,7 @@ class _AboutState extends State<_About> {
       final scrollController = ScrollController();
       return SingleChildScrollView(
         controller: scrollController,
-        child: _Card(title: translate('AcilBir Hakkında'), children: [
+        child: _Card(title: '${translate('About')} AcilBir', children: [
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -2456,13 +2481,13 @@ class _AboutState extends State<_About> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'AcilBir İstemcisi',
+                          translate('AcilBir Client'),
                           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Theme.of(context).textTheme.titleLarge?.color),
                         ),
                         const SizedBox(height: 4),
                         SelectionArea(
                           child: Text(
-                            'Mevcut Sürüm: $version',
+                            '${translate("Current Version")}: $version',
                             style: TextStyle(fontSize: 14, color: Theme.of(context).textTheme.bodyMedium?.color?.withOpacity(0.8)),
                           ),
                         ),
@@ -2471,7 +2496,7 @@ class _AboutState extends State<_About> {
                     if (!isWeb)
                       ElevatedButton.icon(
                         icon: const Icon(Icons.sync, size: 20, color: Colors.white),
-                        label: const Text('Güncellemeleri Kontrol Et', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
+                        label: Text(translate('Check for Updates'), style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.white)),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF2c8cff),
                           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
@@ -2497,7 +2522,7 @@ class _AboutState extends State<_About> {
                       .marginSymmetric(vertical: 4.0)),
               InkWell(
                   onTap: () {
-                    launchUrlString('https://acilbir.com/gizlilik');
+                    launchUrlString('https://acilbir.com/privacy');
                   },
                   child: Text(
                     translate('Privacy Statement'),
@@ -2508,7 +2533,7 @@ class _AboutState extends State<_About> {
                     launchUrlString('https://acilbir.com');
                   },
                   child: Text(
-                    'AcilBir Destek & Web Portalı',
+                    translate('AcilBir Support & Web Portal'),
                     style: linkStyle.copyWith(color: MyTheme.accent, fontWeight: FontWeight.bold),
                   ).marginSymmetric(vertical: 4.0)),
               Container(
@@ -2523,15 +2548,9 @@ class _AboutState extends State<_About> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Copyright © ${DateTime.now().toString().substring(0, 4)} AcilBir\n$license',
+                            'Copyright © ${DateTime.now().toString().substring(0, 4)} ABT Bilgisayar Programlama ve Tic.Ltd.Sti.\n$license',
                             style: const TextStyle(color: Colors.white),
                           ),
-                          Text(
-                            translate('Slogan_tip'),
-                            style: TextStyle(
-                                fontWeight: FontWeight.w800,
-                                color: Colors.white),
-                          )
                         ],
                       ),
                     ),

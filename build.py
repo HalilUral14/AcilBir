@@ -707,8 +707,18 @@ def build_flutter_deb(version, features):
     system2('mkdir -p tmpdeb/etc/rustdesk/')
     system2('mkdir -p tmpdeb/etc/pam.d/')
     system2('mkdir -p tmpdeb/usr/share/rustdesk/files/systemd/')
-    system2('mkdir -p tmpdeb/usr/share/icons/hicolor/256x256/apps/')
+    app_env = os.environ.get('appname', '').strip()
+    icon_names = ['rustdesk']
+    if app_env and app_env != 'rustdesk':
+        clean_name = re.sub(r'[^a-zA-Z0-9]', '', app_env).lower()
+        for name in [app_env, clean_name]:
+            if name and name not in icon_names:
+                icon_names.append(name)
+
+    for sz in ['32x32', '64x64', '128x128', '256x256']:
+        system2(f'mkdir -p tmpdeb/usr/share/icons/hicolor/{sz}/apps/')
     system2('mkdir -p tmpdeb/usr/share/icons/hicolor/scalable/apps/')
+    system2('mkdir -p tmpdeb/usr/share/pixmaps/')
     system2('mkdir -p tmpdeb/usr/share/applications/')
     system2('mkdir -p tmpdeb/usr/share/polkit-1/actions')
     system2('rm tmpdeb/usr/bin/rustdesk || true')
@@ -716,14 +726,28 @@ def build_flutter_deb(version, features):
         f'cp -r {flutter_build_dir}/* tmpdeb/usr/share/rustdesk/')
     system2(
         'cp ../res/rustdesk.service tmpdeb/usr/share/rustdesk/files/systemd/')
-    system2(
-        'cp ../res/128x128@2x.png tmpdeb/usr/share/icons/hicolor/256x256/apps/rustdesk.png')
-    system2(
-        'cp ../res/scalable.svg tmpdeb/usr/share/icons/hicolor/scalable/apps/rustdesk.svg')
+
+    for iname in icon_names:
+        if os.path.exists('../res/32x32.png'):
+            system2(f'cp ../res/32x32.png tmpdeb/usr/share/icons/hicolor/32x32/apps/{iname}.png')
+        if os.path.exists('../res/64x64.png'):
+            system2(f'cp ../res/64x64.png tmpdeb/usr/share/icons/hicolor/64x64/apps/{iname}.png')
+        if os.path.exists('../res/128x128.png'):
+            system2(f'cp ../res/128x128.png tmpdeb/usr/share/icons/hicolor/128x128/apps/{iname}.png')
+        if os.path.exists('../res/128x128@2x.png'):
+            system2(f'cp ../res/128x128@2x.png tmpdeb/usr/share/icons/hicolor/256x256/apps/{iname}.png')
+            system2(f'cp ../res/128x128@2x.png tmpdeb/usr/share/pixmaps/{iname}.png')
+        if os.path.exists('../res/scalable.svg'):
+            system2(f'cp ../res/scalable.svg tmpdeb/usr/share/icons/hicolor/scalable/apps/{iname}.svg')
+
     system2(
         'cp ../res/rustdesk.desktop tmpdeb/usr/share/applications/rustdesk.desktop')
     system2(
         'cp ../res/rustdesk-link.desktop tmpdeb/usr/share/applications/rustdesk-link.desktop')
+    if app_env and app_env != 'rustdesk':
+        for iname in icon_names:
+            if iname != 'rustdesk':
+                system2(f'cp ../res/rustdesk.desktop tmpdeb/usr/share/applications/{iname}.desktop')
     system2(
         'cp ../res/startwm.sh tmpdeb/etc/rustdesk/')
     system2(

@@ -1,4 +1,4 @@
-lazy_static::lazy_static! {
+﻿lazy_static::lazy_static! {
 pub static ref T: std::collections::HashMap<&'static str, &'static str> =
     [
         ("Status", "Olek"),
@@ -44,7 +44,7 @@ pub static ref T: std::collections::HashMap<&'static str, &'static str> =
         ("id_change_tip", "Lubatud on vaid a-z, A-Z, 0-9, - (kriips) ja _ (alakriips) tähemärgid. Esimene täht peab olema a-z või A-Z. Pikkus vahemikus 6-16."),
         ("Website", "Veebileht"),
         ("About", "Meist"),
-        ("Slogan_tip", "Loodud südamega selles kaootilises maailmas!"),
+        ("Slogan_tip", "ABT Bilgisayar Programlama ve Tic.Ltd.Sti."),
         ("Privacy Statement", "Privaatsusteatis"),
         ("Mute", "Hääletu"),
         ("Build Date", "Ehituskuupäev"),
@@ -767,5 +767,18 @@ pub static ref T: std::collections::HashMap<&'static str, &'static str> =
         ("whitelist_cidr_tip", "Toetatud on CIDR-tähistus, näiteks 192.168.1.0/24"),
         ("Continue", ""),
         ("Browser didn't open? Use the url below to sign in.", ""),
+            ("Update Check", "Värskenduste kontroll"),
+        ("System is up to date", "Teie süsteem on ajakohane"),
+        ("Current Version", "Praegune versioon"),
+        ("Check for Updates", "Kontrolli värskendusi"),
+        ("New version found", "Leiti uus versioon"),
+        ("current", "praegune"),
+        ("Server response could not be read", "Serveri vastust ei saanud lugeda"),
+        ("Could not connect to update server", "Värskendusserveriga ei saanud ühendust"),
+        ("Code", "Kood"),
+        ("A network/system error occurred during update check", "Värskenduste kontrolli ajal ilmnes võrgu-/süsteemiviga"),
+        ("AcilBir Client", "AcilBir Klient"),
+        ("AcilBir Support & Web Portal", "AcilBir Tugi & Veebiportaal"),
+            ("Do you want to update now?", "Kas soovite kohe värskendada?"),
     ].iter().cloned().collect();
 }

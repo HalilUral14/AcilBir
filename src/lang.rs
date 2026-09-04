@@ -145,6 +145,9 @@ fn resolve_lang(saved_lang: &str, locale: &str, cjk_fallback: bool) -> String {
             .unwrap_or_default()
             .to_owned();
     }
+    if lang.is_empty() {
+        lang = "tr".to_owned();
+    }
     if cjk_fallback && is_cjk_lang(&lang) {
         "en".to_owned()
     } else {

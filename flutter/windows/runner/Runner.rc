@@ -89,13 +89,13 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "Purslane Tech Pte. Ltd." "\0"
-            VALUE "FileDescription", "RustDesk Remote Desktop" "\0"
+            VALUE "CompanyName", "ABT Bilgisayar Programlama ve Tic.Ltd.Sti." "\0"
+            VALUE "FileDescription", "AcilBir Remote Desktop" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "rustdesk" "\0"
-            VALUE "LegalCopyright", "Copyright © 2026 Purslane Tech Pte. Ltd. All rights reserved." "\0"
-            VALUE "OriginalFilename", "rustdesk.exe" "\0"
-            VALUE "ProductName", "RustDesk" "\0"
+            VALUE "InternalName", "AcilBir" "\0"
+            VALUE "LegalCopyright", "Copyright © 2026 ABT Bilgisayar Programlama ve Tic.Ltd.Sti. All rights reserved." "\0"
+            VALUE "OriginalFilename", "AcilBir.exe" "\0"
+            VALUE "ProductName", "AcilBir" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

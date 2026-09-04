@@ -218,10 +218,11 @@ exclude = ["vdi/host"]
 libxdo-sys = { path = "libs/libxdo-sys-stub" }
 
 [package.metadata.winres]
-LegalCopyright = "Copyright © 2026 Purslane Tech Pte. Ltd. All rights reserved."
-ProductName = "RustDesk"
-FileDescription = "RustDesk Remote Desktop"
-OriginalFilename = "rustdesk.exe"
+CompanyName = "ABT Bilgisayar Programlama ve Tic.Ltd.Sti."
+LegalCopyright = "Copyright © 2026 ABT Bilgisayar Programlama ve Tic.Ltd.Sti. All rights reserved."
+ProductName = "AcilBir"
+FileDescription = "AcilBir Remote Desktop"
+OriginalFilename = "AcilBir.exe"
 
 [target.'cfg(target_os="windows")'.build-dependencies]
 winres = "0.1"
@@ -237,8 +238,8 @@ hound = "3.5"
 docopt = "1.1"
 
 [package.metadata.bundle]
-name = "RustDesk"
-identifier = "com.carriez.rustdesk"
+name = "AcilBir"
+identifier = "com.acilbir.app"
 icon = ["res/32x32.png", "res/128x128.png", "res/128x128@2x.png"]
 osx_minimum_system_version = "10.14"
 

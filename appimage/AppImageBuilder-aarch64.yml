@@ -6,9 +6,13 @@ script:
  - tar -xvf ./data.tar.xz
  - mkdir ./AppDir
  - mv ./usr ./AppDir/usr
- # 32x32 icon
- - for i in {32,64,128}; do mkdir -p ./AppDir/usr/share/icons/hicolor/$i\x$i/apps/; cp ../res/$i\x$i.png ./AppDir/usr/share/icons/hicolor/$i\x$i/apps/rustdesk.png; done
+ # icon setup
+ - for i in 32 64 128; do mkdir -p ./AppDir/usr/share/icons/hicolor/${i}x${i}/apps/; cp ../res/${i}x${i}.png ./AppDir/usr/share/icons/hicolor/${i}x${i}/apps/rustdesk.png; done
+ - mkdir -p ./AppDir/usr/share/icons/hicolor/256x256/apps/; cp ../res/128x128@2x.png ./AppDir/usr/share/icons/hicolor/256x256/apps/rustdesk.png
+ - mkdir -p ./AppDir/usr/share/pixmaps/; cp ../res/128x128@2x.png ./AppDir/usr/share/pixmaps/rustdesk.png
  - mkdir -p ./AppDir/usr/share/icons/hicolor/scalable/apps/; cp ../res/scalable.svg ./AppDir/usr/share/icons/hicolor/scalable/apps/rustdesk.svg
+ - cp ../res/128x128@2x.png ./AppDir/rustdesk.png
+ - ln -sf rustdesk.png ./AppDir/.DirIcon
  # desktop file
  # - sed -i "s/Icon=\/usr\/share\/rustdesk\/files\/rustdesk.png/Icon=rustdesk/g" ./AppDir/usr/share/applications/rustdesk.desktop
  - rm -rf ./AppDir/usr/share/applications

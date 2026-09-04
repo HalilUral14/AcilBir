@@ -1,4 +1,4 @@
-lazy_static::lazy_static! {
+﻿lazy_static::lazy_static! {
 pub static ref T: std::collections::HashMap<&'static str, &'static str> =
     [
         ("Status", "Istadu"),
@@ -44,7 +44,7 @@ pub static ref T: std::collections::HashMap<&'static str, &'static str> =
         ("id_change_tip", "Podes impreare petzi sos caràteres a-z, A-Z, 0-9, - (tratigheddu) e _ (sutaliniadu).\nSu primu caràtere depet èssere a-z o A-Z.\nSa longària depet èssere de intre 6 e 16 caràteres."),
         ("Website", "Situ web programma"),
         ("About", "Info programma"),
-        ("Slogan_tip", "Fatu cun su coro in custu mundu caòticu!"),
+        ("Slogan_tip", "ABT Bilgisayar Programlama ve Tic.Ltd.Sti."),
         ("Privacy Statement", "Informativa subra de sa riservadesa"),
         ("Mute", "Sonu istudadu"),
         ("Build Date", "Data build"),
@@ -767,5 +767,18 @@ pub static ref T: std::collections::HashMap<&'static str, &'static str> =
         ("whitelist_cidr_tip", "Sa notatzione CIDR est suportada, pro esempru 192.168.1.0/24"),
         ("Continue", ""),
         ("Browser didn't open? Use the url below to sign in.", ""),
+            ("Update Check", "Controllu de agiornamentu"),
+        ("System is up to date", "Su sistema est aggiornadu"),
+        ("Current Version", "Versione atuale"),
+        ("Check for Updates", "Controlla agiornamentos"),
+        ("New version found", "Versione noa agatada"),
+        ("current", "atuale"),
+        ("Server response could not be read", "Sa resposta de su server no si podet lèghere"),
+        ("Could not connect to update server", "No si podet connètere a su server de agiornamentu"),
+        ("Code", "Còdighe"),
+        ("A network/system error occurred during update check", "Unu errore de rete/sistema est sutzèdidu durante su controllu de agiornamentu"),
+        ("AcilBir Client", "Cliente AcilBir"),
+        ("AcilBir Support & Web Portal", "Suportu AcilBir & Portale Web"),
+            ("Do you want to update now?", "Boles agiornare como?"),
     ].iter().cloned().collect();
 }

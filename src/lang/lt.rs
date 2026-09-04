@@ -1,4 +1,4 @@
-lazy_static::lazy_static! {
+﻿lazy_static::lazy_static! {
 pub static ref T: std::collections::HashMap<&'static str, &'static str> =
     [
         ("Status", "Būsena"),
@@ -44,7 +44,7 @@ pub static ref T: std::collections::HashMap<&'static str, &'static str> =
         ("id_change_tip", "Leidžiami tik simboliai a–z, A–Z, 0–9 ir _ (pabraukimas). Pirmoji raidė turi būti a-z, A-Z. Ilgis nuo 6 iki 16."),
         ("Website", "Interneto svetainė"),
         ("About", "Apie"),
-        ("Slogan_tip", "Sukurta su siela šiame beprotiškame pasaulyje!"),
+        ("Slogan_tip", "ABT Bilgisayar Programlama ve Tic.Ltd.Sti."),
         ("Privacy Statement", "Privatumo pareiškimas"),
         ("Mute", "Nutildyti"),
         ("Build Date", "Sukūrimo data"),
@@ -767,5 +767,18 @@ pub static ref T: std::collections::HashMap<&'static str, &'static str> =
         ("whitelist_cidr_tip", "Palaikomas CIDR žymėjimas, pavyzdžiui 192.168.1.0/24"),
         ("Continue", ""),
         ("Browser didn't open? Use the url below to sign in.", ""),
+            ("Update Check", "Atnaujinimų tikrinimas"),
+        ("System is up to date", "Jūsų sistema yra atnaujinta"),
+        ("Current Version", "Dabartinė versija"),
+        ("Check for Updates", "Tikrinti atnaujinimus"),
+        ("New version found", "Rasta nauja versija"),
+        ("current", "dabartinė"),
+        ("Server response could not be read", "Nepavyko perskaityti serverio atsakymo"),
+        ("Could not connect to update server", "Nepavyko prisijungti prie atnaujinimų serverio"),
+        ("Code", "Kodas"),
+        ("A network/system error occurred during update check", "Tikrinant atnaujinimus įvyko tinklo/sistemos klaida"),
+        ("AcilBir Client", "AcilBir Klientas"),
+        ("AcilBir Support & Web Portal", "AcilBir Palaikymas ir Interneto Portalas"),
+            ("Do you want to update now?", "Ar norite atnaujinti dabar?"),
     ].iter().cloned().collect();
 }

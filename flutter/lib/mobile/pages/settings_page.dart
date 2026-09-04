@@ -36,7 +36,7 @@ class SettingsPage extends StatefulWidget implements PageShape {
   State<SettingsPage> createState() => _SettingsState();
 }
 
-const url = 'https://rustdesk.com/';
+const url = 'https://acilbir.com/';
 
 enum KeepScreenOn {
   never,
@@ -992,7 +992,7 @@ class _SettingsState extends State<SettingsPage> with WidgetsBindingObserver {
                 title: Text(translate("Version: ") + version),
                 value: Padding(
                   padding: EdgeInsets.symmetric(vertical: 8),
-                  child: Text('rustdesk.com',
+                  child: Text('acilbir.com',
                       style: TextStyle(
                         decoration: TextDecoration.underline,
                       )),
@@ -1025,7 +1025,7 @@ class _SettingsState extends State<SettingsPage> with WidgetsBindingObserver {
             SettingsTile(
               title: Text(translate("Privacy Statement")),
               onPressed: (context) =>
-                  launchUrlString('https://rustdesk.com/privacy.html'),
+                  launchUrlString('https://acilbir.com/privacy'),
               leading: Icon(Icons.privacy_tip),
             )
           ],
@@ -1080,19 +1080,16 @@ void showLanguageSettings(OverlayDialogManager dialogManager) async {
         }
       }
 
-      final isOptFixed = isOptionFixed(kCommConfKeyLang);
       return CustomAlertDialog(
         content: Column(
           children: [
-                getRadio(Text(translate('Default')), defaultOptionLang, lang,
-                    isOptFixed ? null : setLang),
+                getRadio(Text(translate('Default')), defaultOptionLang, lang, setLang),
                 Divider(color: MyTheme.border),
               ] +
               langs.map((e) {
                 final key = e[0] as String;
                 final name = e[1] as String;
-                return getRadio(Text(translate(name)), key, lang,
-                    isOptFixed ? null : setLang);
+                return getRadio(Text(translate(name)), key, lang, setLang);
               }).toList(),
         ),
       );

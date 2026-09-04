@@ -221,6 +221,9 @@ pub fn use_texture_render() -> bool {
 
 #[inline]
 pub fn is_option_fixed(key: &str) -> bool {
+    if key == "lang" || key == "language" {
+        return false;
+    }
     config::OVERWRITE_DISPLAY_SETTINGS
         .read()
         .unwrap()

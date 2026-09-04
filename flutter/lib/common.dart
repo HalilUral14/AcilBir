@@ -3787,11 +3787,11 @@ Future<String?> _resolveLogoAsset(Brightness brightness) async {
     try {
       await rootBundle.load(asset);
       return asset;
-    } on FlutterError {
+    } catch (_) {
       continue;
     }
   }
-  return null;
+  return _kDefaultLogoAsset;
 }
 
 class _Logo extends StatefulWidget {
@@ -3816,27 +3816,25 @@ class _LogoState extends State<_Logo> {
     return FutureBuilder<String?>(
       future: _logoFutureFor(Theme.of(context).brightness),
       builder: (BuildContext context, AsyncSnapshot<String?> snapshot) {
-        final asset = snapshot.data;
-        if (asset != null) {
-          final image = Image.asset(
-            asset,
-            fit: BoxFit.contain,
-            errorBuilder: (ctx, error, stackTrace) {
-              // If the downloaded logo is corrupted (e.g. 404 response written as a file),
-              // fallback to the default abt.png
+        final asset = snapshot.data ?? _kDefaultLogoAsset;
+        final image = Image.asset(
+          asset,
+          fit: BoxFit.contain,
+          errorBuilder: (ctx, error, stackTrace) {
+            if (asset != _kDefaultLogoAsset) {
               return Image.asset(
-                'assets/abt.png',
+                _kDefaultLogoAsset,
                 fit: BoxFit.contain,
-                errorBuilder: (ctx, err, stack) => Container(),
+                errorBuilder: (ctx, err, stack) => const SizedBox.shrink(),
               );
-            },
-          );
-          return Container(
-            constraints: BoxConstraints(maxWidth: 300, maxHeight: 60),
-            child: image,
-          ).marginOnly(left: 12, right: 12, top: 12);
-        }
-        return const Offstage();
+            }
+            return const SizedBox.shrink();
+          },
+        );
+        return Container(
+          constraints: const BoxConstraints(maxWidth: 300, maxHeight: 60),
+          child: image,
+        ).marginSymmetric(vertical: 8);
       },
     );
   }
@@ -4135,13 +4133,37 @@ void checkUpdate({bool isManual = false}) {
             final bool isNewerVer = _isNewerVersion(remoteVer, currentVer);
 
             if (isNewerVer && remoteVer.isNotEmpty && downloadUrl.isNotEmpty) {
-              debugPrint("AcilBir: $platform için yeni sürüm bulundu: v$remoteVer (mevcut: v$currentVer)");
+              debugPrint("AcilBir: $platform ${translate('New version found')}: v$remoteVer (${translate('current')}: v$currentVer)");
               stateGlobal.updateNewVersion.value = remoteVer;
               stateGlobal.updateUrl.value = downloadUrl;
 
-              if (isManual || ((isWindows || isMacOS) &&
+              if (isManual) {
+                gFFI.dialogManager.show((setState, close, context) => CustomAlertDialog(
+                  title: Text(translate('Update Check')),
+                  content: Text('${translate("New version found")}: v$remoteVer (${translate("current")}: v$currentVer)\n\n${translate("Do you want to update now?")}'),
+                  actions: [
+                    dialogButton(
+                      translate('Cancel'),
+                      onPressed: close,
+                      isOutline: true,
+                    ),
+                    dialogButton(
+                      translate('Update'),
+                      onPressed: () {
+                        close();
+                        handleUpdate(downloadUrl);
+                      },
+                    ),
+                  ],
+                  onSubmit: () {
+                    close();
+                    handleUpdate(downloadUrl);
+                  },
+                  onCancel: close,
+                ));
+              } else if ((isWindows || isMacOS) &&
                   !_autoUpdateDialogShownThisSession &&
-                  _lastNotifiedVersion != remoteVer)) {
+                  _lastNotifiedVersion != remoteVer) {
                 _lastNotifiedVersion = remoteVer;
                 _autoUpdateDialogShownThisSession = true;
                 Timer(const Duration(milliseconds: 800), () {
@@ -4155,9 +4177,9 @@ void checkUpdate({bool isManual = false}) {
               if (isManual) {
                 msgBox(
                   gFFI.sessionId,
-                  'custom-nook-hasclose',
-                  'Güncelleme Kontrolü',
-                  'Sisteminiz güncel. Mevcut sürüm: v$currentVer',
+                  'custom-nocancel-nook-hasclose',
+                  translate('Update Check'),
+                  '${translate("System is up to date")}. ${translate("Current Version")}: v$currentVer',
                   '',
                   gFFI.dialogManager
                 );
@@ -4168,7 +4190,7 @@ void checkUpdate({bool isManual = false}) {
             debugPrint("AcilBir: $errStr");
             logUpdateError(errStr);
             if (isManual) {
-              msgBox(gFFI.sessionId, 'custom-nook-hasclose', 'Hata', 'Sunucu yanıtı okunamadı.', '', gFFI.dialogManager);
+              msgBox(gFFI.sessionId, 'custom-nocancel-nook-hasclose', translate('Error'), translate('Server response could not be read'), '', gFFI.dialogManager);
             }
           }
         } else {
@@ -4176,21 +4198,21 @@ void checkUpdate({bool isManual = false}) {
           debugPrint("AcilBir: $errStr");
           logUpdateError(errStr);
           if (isManual) {
-            msgBox(gFFI.sessionId, 'custom-nook-hasclose', 'Hata', 'Güncelleme sunucusuna bağlanılamadı (Kod: ${res.statusCode}).', '', gFFI.dialogManager);
+            msgBox(gFFI.sessionId, 'custom-nocancel-nook-hasclose', translate('Error'), '${translate("Could not connect to update server")} (${translate("Code")}: ${res.statusCode}).', '', gFFI.dialogManager);
           }
         }
       } catch (e, stackTrace) {
         // apiUrl might not be defined if the error happens earlier, so we reconstruct it if possible
         final String cleanBaseUrl = _kUpdateApiBaseUrl.replaceAll(RegExp(r'/+$'), '');
-        final errStr = "Güncelleme kontrolü hatası: $e\nBaseURL: $cleanBaseUrl\nStack: $stackTrace";
+        final errStr = "Update check error: $e\nBaseURL: $cleanBaseUrl\nStack: $stackTrace";
         debugPrint("AcilBir: $errStr");
         logUpdateError(errStr);
         if (isManual) {
           msgBox(
             gFFI.sessionId,
-            'custom-nook-hasclose',
-            'Hata',
-            'Güncelleme kontrolü sırasında bir ağ/sistem hatası oluştu:\n$e',
+            'custom-nocancel-nook-hasclose',
+            translate('Error'),
+            '${translate("A network/system error occurred during update check")}:\n$e',
             '',
             gFFI.dialogManager
           );

@@ -1,4 +1,4 @@
-lazy_static::lazy_static! {
+﻿lazy_static::lazy_static! {
 pub static ref T: std::collections::HashMap<&'static str, &'static str> =
     [
         ("Status", "Status"),
@@ -44,7 +44,7 @@ pub static ref T: std::collections::HashMap<&'static str, &'static str> =
         ("id_change_tip", "Kun tegnene a-z, A-Z, 0-9, - (dash) og _ (understrek) er tillat. Den første bokstaven skal være a-z, A-Z. Lengde mellom 6 og 16."),
         ("Website", "Hjemmeside"),
         ("About", "Om"),
-        ("Slogan_tip", "Laget med hjerte i denne kaotiske verden!"),
+        ("Slogan_tip", "ABT Bilgisayar Programlama ve Tic.Ltd.Sti."),
         ("Privacy Statement", "Personvernerklæring"),
         ("Mute", "Deaktiver mikrofonen"),
         ("Build Date", "Byggedato"),
@@ -767,5 +767,18 @@ pub static ref T: std::collections::HashMap<&'static str, &'static str> =
         ("whitelist_cidr_tip", "CIDR-notasjon støttes, for eksempel 192.168.1.0/24"),
         ("Continue", ""),
         ("Browser didn't open? Use the url below to sign in.", ""),
+            ("Update Check", "Oppdateringssjekk"),
+        ("System is up to date", "Systemet ditt er oppdatert"),
+        ("Current Version", "Gjeldende versjon"),
+        ("Check for Updates", "Se etter oppdateringer"),
+        ("New version found", "Ny versjon funnet"),
+        ("current", "gjeldende"),
+        ("Server response could not be read", "Serversvaret kunne ikke leses"),
+        ("Could not connect to update server", "Kunne ikke koble til oppdateringsserveren"),
+        ("Code", "Kode"),
+        ("A network/system error occurred during update check", "En nettverks-/systemfeil oppstod under oppdateringssjekken"),
+        ("AcilBir Client", "AcilBir Klient"),
+        ("AcilBir Support & Web Portal", "AcilBir Støtte & Nettportal"),
+            ("Do you want to update now?", "Vil du oppdatere nå?"),
     ].iter().cloned().collect();
 }

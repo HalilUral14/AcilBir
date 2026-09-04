@@ -1,4 +1,4 @@
-lazy_static::lazy_static! {
+﻿lazy_static::lazy_static! {
 pub static ref T: std::collections::HashMap<&'static str, &'static str> =
     [
         ("Status", "Statusi"),
@@ -44,7 +44,7 @@ pub static ref T: std::collections::HashMap<&'static str, &'static str> =
         ("id_change_tip", "Lejohen Vetëm karkteret a-z,A-Z,0-9, - (dash) dhe _(nënvizimet).Shkronja e parë duhet të jetë a-z, A-Z. Gjatesia midis 6 dhe 16."),
         ("Website", "Faqe ëebi"),
         ("About", "Rreth"),
-        ("Slogan_tip", "Bërë me zemër në këtë botë kaotike!"),
+        ("Slogan_tip", "ABT Bilgisayar Programlama ve Tic.Ltd.Sti."),
         ("Privacy Statement", "Deklarata e Privatësisë"),
         ("Mute", "Pa zë"),
         ("Build Date", "Data e ndërtimit"),
@@ -767,5 +767,18 @@ pub static ref T: std::collections::HashMap<&'static str, &'static str> =
         ("whitelist_cidr_tip", "Mbështetet shënimi CIDR, për shembull 192.168.1.0/24"),
         ("Continue", ""),
         ("Browser didn't open? Use the url below to sign in.", ""),
+            ("Update Check", "Kontroll përditësimi"),
+        ("System is up to date", "Sistemi juaj është i përditësuar"),
+        ("Current Version", "Versioni aktual"),
+        ("Check for Updates", "Kontrollo përditësimet"),
+        ("New version found", "U gjet version i ri"),
+        ("current", "aktual"),
+        ("Server response could not be read", "Përgjigja e serverit nuk mund të lexohej"),
+        ("Could not connect to update server", "Nuk u arrit të lidhet me serverin e përditësimit"),
+        ("Code", "Kodi"),
+        ("A network/system error occurred during update check", "Ndodhi një gabim rrjeti/sistemi gjatë kontrollit të përditësimit"),
+        ("AcilBir Client", "Klienti AcilBir"),
+        ("AcilBir Support & Web Portal", "Mbështetja AcilBir & Portali Web"),
+            ("Do you want to update now?", "Dëshironi të përditësoni tani?"),
     ].iter().cloned().collect();
 }

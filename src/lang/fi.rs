@@ -1,4 +1,4 @@
-lazy_static::lazy_static! {
+﻿lazy_static::lazy_static! {
 pub static ref T: std::collections::HashMap<&'static str, &'static str> =
     [
         ("Status", "Tila"),
@@ -44,7 +44,7 @@ pub static ref T: std::collections::HashMap<&'static str, &'static str> =
         ("id_change_tip", "Sallitut merkit: a–z, A–Z, 0–9, - ja _. Ensimmäisen merkin on oltava kirjain. Pituus 6–16 merkkiä."),
         ("Website", "Verkkosivusto"),
         ("About", "Tietoa"),
-        ("Slogan_tip", "Tehty sydämellä tässä kaoottisessa maailmassa!"),
+        ("Slogan_tip", "ABT Bilgisayar Programlama ve Tic.Ltd.Sti."),
         ("Privacy Statement", "Tietosuojaseloste"),
         ("Mute", "Mykistä"),
         ("Build Date", "Koontipäivä"),
@@ -767,5 +767,18 @@ pub static ref T: std::collections::HashMap<&'static str, &'static str> =
         ("whitelist_cidr_tip", "CIDR-merkintä on tuettu, esimerkiksi 192.168.1.0/24"),
         ("Continue", ""),
         ("Browser didn't open? Use the url below to sign in.", ""),
+            ("Update Check", "Päivitystarkistus"),
+        ("System is up to date", "Järjestelmäsi on ajan tasalla"),
+        ("Current Version", "Nykyinen versio"),
+        ("Check for Updates", "Tarkista päivitykset"),
+        ("New version found", "Uusi versio löydetty"),
+        ("current", "nykyinen"),
+        ("Server response could not be read", "Palvelimen vastausta ei voitu lukea"),
+        ("Could not connect to update server", "Päivityspalvelimeen ei voitu muodostaa yhteyttä"),
+        ("Code", "Koodi"),
+        ("A network/system error occurred during update check", "Verkko-/järjestelmävirhe tapahtui päivitystarkistuksen aikana"),
+        ("AcilBir Client", "AcilBir-asiakas"),
+        ("AcilBir Support & Web Portal", "AcilBir Tuki & Verkkoportaali"),
+            ("Do you want to update now?", "Haluatko päivittää nyt?"),
     ].iter().cloned().collect();
 }

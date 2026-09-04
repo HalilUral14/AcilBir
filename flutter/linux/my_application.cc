@@ -112,14 +112,95 @@ static void my_application_activate(GApplication* application) {
   GtkWindow* window =
       GTK_WINDOW(gtk_application_window_new(GTK_APPLICATION(application)));
   gtk_window_set_decorated(window, FALSE);
-  // try setting icon for rustdesk, which uses the system cache
+  // Try setting icon from system theme or directly from bundle/system files
   GtkIconTheme* theme = gtk_icon_theme_get_default();
-  gint icons[4] = {256, 128, 64, 32};
-  for (int i = 0; i < 4; i++) {
-    GdkPixbuf* icon = gtk_icon_theme_load_icon(theme, "rustdesk", icons[i], GTK_ICON_LOOKUP_NO_SVG, NULL);
-    if (icon != nullptr) {
-      gtk_window_set_icon(window, icon);
+
+  // If running from AppImage or standalone bundle, register icon search paths
+  gchar* exe_link = g_file_read_link("/proc/self/exe", nullptr);
+  if (exe_link != nullptr) {
+    gchar* exe_dir = g_path_get_dirname(exe_link);
+    gchar* bundle_icons1 = g_build_filename(exe_dir, "data", "flutter_assets", "assets", nullptr);
+    gchar* bundle_icons2 = g_build_filename(exe_dir, "..", "icons", "hicolor", nullptr);
+    gchar* bundle_icons3 = g_build_filename(exe_dir, "..", "share", "icons", "hicolor", nullptr);
+    if (g_file_test(bundle_icons1, G_FILE_TEST_IS_DIR)) {
+      gtk_icon_theme_append_search_path(theme, bundle_icons1);
     }
+    if (g_file_test(bundle_icons2, G_FILE_TEST_IS_DIR)) {
+      gtk_icon_theme_append_search_path(theme, bundle_icons2);
+    }
+    if (g_file_test(bundle_icons3, G_FILE_TEST_IS_DIR)) {
+      gtk_icon_theme_append_search_path(theme, bundle_icons3);
+    }
+    g_free(bundle_icons1);
+    g_free(bundle_icons2);
+    g_free(bundle_icons3);
+    g_free(exe_dir);
+  }
+
+  gint icons[4] = {256, 128, 64, 32};
+  gboolean icon_set = FALSE;
+  const char* icon_names[] = {"acilbir", "AcilBir", "rustdesk", APPLICATION_ID, nullptr};
+
+  for (const char** name = icon_names; *name != nullptr && !icon_set; name++) {
+    for (int i = 0; i < 4; i++) {
+      GdkPixbuf* icon = gtk_icon_theme_load_icon(theme, *name, icons[i], GTK_ICON_LOOKUP_NO_SVG, nullptr);
+      if (icon != nullptr) {
+        gtk_window_set_icon(window, icon);
+        icon_set = TRUE;
+      }
+    }
+  }
+
+  // Fallback: If not found in theme, load directly from executable-relative file paths
+  if (!icon_set && exe_link != nullptr) {
+    gchar* exe_dir = g_path_get_dirname(exe_link);
+    const char* rel_paths[] = {
+      "data/flutter_assets/assets/logo.png",
+      "data/flutter_assets/assets/icon.png",
+      "../icons/hicolor/256x256/apps/acilbir.png",
+      "../icons/hicolor/256x256/apps/AcilBir.png",
+      "../icons/hicolor/256x256/apps/rustdesk.png",
+      "../share/icons/hicolor/256x256/apps/acilbir.png",
+      "../share/icons/hicolor/256x256/apps/AcilBir.png",
+      "../share/icons/hicolor/256x256/apps/rustdesk.png",
+      nullptr
+    };
+    for (const char** rel = rel_paths; *rel != nullptr; rel++) {
+      gchar* full_path = g_build_filename(exe_dir, *rel, nullptr);
+      if (g_file_test(full_path, G_FILE_TEST_EXISTS)) {
+        if (gtk_window_set_icon_from_file(window, full_path, nullptr)) {
+          icon_set = TRUE;
+          g_free(full_path);
+          break;
+        }
+      }
+      g_free(full_path);
+    }
+    g_free(exe_dir);
+  }
+
+  // Fallback: Check system paths
+  if (!icon_set) {
+    const char* sys_paths[] = {
+      "/usr/share/icons/hicolor/256x256/apps/acilbir.png",
+      "/usr/share/icons/hicolor/256x256/apps/AcilBir.png",
+      "/usr/share/icons/hicolor/256x256/apps/rustdesk.png",
+      "/usr/share/pixmaps/acilbir.png",
+      "/usr/share/pixmaps/AcilBir.png",
+      "/usr/share/pixmaps/rustdesk.png",
+      nullptr
+    };
+    for (const char** p = sys_paths; *p != nullptr; p++) {
+      if (g_file_test(*p, G_FILE_TEST_EXISTS)) {
+        if (gtk_window_set_icon_from_file(window, *p, nullptr)) {
+          break;
+        }
+      }
+    }
+  }
+
+  if (exe_link != nullptr) {
+    g_free(exe_link);
   }
   // Use a header bar when running in GNOME as this is the common style used
   // by applications and is the setup most users will be using (e.g. Ubuntu

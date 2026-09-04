@@ -1,4 +1,4 @@
-lazy_static::lazy_static! {
+﻿lazy_static::lazy_static! {
 pub static ref T: std::collections::HashMap<&'static str, &'static str> =
     [
         ("Status", "Estat"),
@@ -44,7 +44,7 @@ pub static ref T: std::collections::HashMap<&'static str, &'static str> =
         ("id_change_tip", "Els caràcters admesos són: a-z, A-Z, 0-9, - (dash), _ (guió baix). El primer caràcter ha de ser a-z/A-Z, i una mida de 6 a 16 caràcters."),
         ("Website", "Lloc web"),
         ("About", "Quant al RustDesk"),
-        ("Slogan_tip", "Fet de tot cor dins d'aquest món caòtic!\nTraducció: Benet R. i Camps (BennyBeat)."),
+        ("Slogan_tip", "ABT Bilgisayar Programlama ve Tic.Ltd.Sti."),
         ("Privacy Statement", "Declaració de privadesa"),
         ("Mute", "Silencia"),
         ("Build Date", "Data de compilació"),
@@ -767,5 +767,18 @@ pub static ref T: std::collections::HashMap<&'static str, &'static str> =
         ("whitelist_cidr_tip", "S'admet la notació CIDR, per exemple 192.168.1.0/24"),
         ("Continue", ""),
         ("Browser didn't open? Use the url below to sign in.", ""),
+            ("Update Check", "Comprovació d'actualitzacions"),
+        ("System is up to date", "El vostre sistema està actualitzat"),
+        ("Current Version", "Versió actual"),
+        ("Check for Updates", "Comprovar actualitzacions"),
+        ("New version found", "S'ha trobat una nova versió"),
+        ("current", "actual"),
+        ("Server response could not be read", "No s'ha pogut llegir la resposta del servidor"),
+        ("Could not connect to update server", "No s'ha pogut connectar al servidor d'actualitzacions"),
+        ("Code", "Codi"),
+        ("A network/system error occurred during update check", "S'ha produït un error de xarxa/sistema durant la comprovació d'actualitzacions"),
+        ("AcilBir Client", "Client AcilBir"),
+        ("AcilBir Support & Web Portal", "Suport AcilBir i Portal Web"),
+            ("Do you want to update now?", "Voleu actualitzar ara?"),
     ].iter().cloned().collect();
 }

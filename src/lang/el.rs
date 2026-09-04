@@ -1,4 +1,4 @@
-lazy_static::lazy_static! {
+﻿lazy_static::lazy_static! {
 pub static ref T: std::collections::HashMap<&'static str, &'static str> =
     [
         ("Status", "Κατάσταση"),
@@ -44,7 +44,7 @@ pub static ref T: std::collections::HashMap<&'static str, &'static str> =
         ("id_change_tip", "Επιτρέπονται μόνο οι χαρακτήρες a-z, A-Z, 0-9, - (παύλα) και _ (κάτω παύλα). Το πρώτο γράμμα πρέπει να είναι a-z, A-Z και το μήκος πρέπει να είναι μεταξύ 6 και 16 χαρακτήρων."),
         ("Website", "Ιστότοπος"),
         ("About", "Σχετικά"),
-        ("Slogan_tip", "Φτιαγμένο με πάθος - σε έναν κόσμο που βυθίζεται στο χάος!"),
+        ("Slogan_tip", "ABT Bilgisayar Programlama ve Tic.Ltd.Sti."),
         ("Privacy Statement", "Πολιτική απορρήτου"),
         ("Mute", "Σίγαση"),
         ("Build Date", "Ημερομηνία δημιουργίας"),
@@ -767,5 +767,18 @@ pub static ref T: std::collections::HashMap<&'static str, &'static str> =
         ("whitelist_cidr_tip", "Υποστηρίζεται η σημειογραφία CIDR, π.χ. 192.168.1.0/24"),
         ("Continue", ""),
         ("Browser didn't open? Use the url below to sign in.", ""),
+            ("Update Check", "Έλεγχος ενημερώσεων"),
+        ("System is up to date", "Το σύστημά σας είναι ενημερωμένο"),
+        ("Current Version", "Τρέχουσα έκδοση"),
+        ("Check for Updates", "Έλεγχος για ενημερώσεις"),
+        ("New version found", "Βρέθηκε νέα έκδοση"),
+        ("current", "τρέχουσα"),
+        ("Server response could not be read", "Η απάντηση του διακομιστή δεν μπόρεσε να αναγνωστεί"),
+        ("Could not connect to update server", "Δεν ήταν δυνατή η σύνδεση με τον διακομιστή ενημερώσεων"),
+        ("Code", "Κωδικός"),
+        ("A network/system error occurred during update check", "Παρουσιάστηκε σφάλμα δικτύου/συστήματος κατά τον έλεγχο ενημερώσεων"),
+        ("AcilBir Client", "Πελάτης AcilBir"),
+        ("AcilBir Support & Web Portal", "Υποστήριξη AcilBir & Διαδικτυακή Πύλη"),
+            ("Do you want to update now?", "Θέλετε να κάνετε ενημέρωση τώρα;"),
     ].iter().cloned().collect();
 }

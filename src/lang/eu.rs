@@ -1,4 +1,4 @@
-lazy_static::lazy_static! {
+﻿lazy_static::lazy_static! {
 pub static ref T: std::collections::HashMap<&'static str, &'static str> =
     [
         ("Status", "Egoera"),
@@ -44,7 +44,7 @@ pub static ref T: std::collections::HashMap<&'static str, &'static str> =
         ("id_change_tip", "Soilik a-z, A-Z, 0-9, - (dash) eta _ (barra baxua) karaktereak daude onartuta. Lehen hizkia a-z, A-Z izan behar da. Luzera 6 eta 16 artekoa izan behar da."),
         ("Website", "Webgunea"),
         ("About", "Honi buruz"),
-        ("Slogan_tip", "Bihotzez eginda mundu kaotiko honetan!"),
+        ("Slogan_tip", "ABT Bilgisayar Programlama ve Tic.Ltd.Sti."),
         ("Privacy Statement", "Pribatutasun-politika"),
         ("Mute", "Mututu"),
         ("Build Date", "Konpilazio-data"),
@@ -767,5 +767,18 @@ pub static ref T: std::collections::HashMap<&'static str, &'static str> =
         ("whitelist_cidr_tip", "CIDR notazioa onartzen da, adibidez 192.168.1.0/24"),
         ("Continue", ""),
         ("Browser didn't open? Use the url below to sign in.", ""),
+            ("Update Check", "Eguneraketa-egiaztapena"),
+        ("System is up to date", "Zure sistema eguneratuta dago"),
+        ("Current Version", "Uneko bertsioa"),
+        ("Check for Updates", "Eguneraketak egiaztatu"),
+        ("New version found", "Bertsio berria aurkituta"),
+        ("current", "uneko"),
+        ("Server response could not be read", "Zerbitzariaren erantzuna ezin izan da irakurri"),
+        ("Could not connect to update server", "Ezin izan da eguneraketa-zerbitzarira konektatu"),
+        ("Code", "Kodea"),
+        ("A network/system error occurred during update check", "Sare/sistema errorea gertatu da eguneraketa-egiaztapenean"),
+        ("AcilBir Client", "AcilBir Bezeroa"),
+        ("AcilBir Support & Web Portal", "AcilBir Laguntza & Web Ataria"),
+            ("Do you want to update now?", "Orain eguneratu nahi duzu?"),
     ].iter().cloned().collect();
 }

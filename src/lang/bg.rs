@@ -767,5 +767,17 @@ pub static ref T: std::collections::HashMap<&'static str, &'static str> =
         ("whitelist_cidr_tip", "Поддържа се CIDR нотация, например: 192.168.1.0/24"),
         ("Continue", ""),
         ("Browser didn't open? Use the url below to sign in.", ""),
+        ("Update Check", "Проверка за обновления"),
+        ("System is up to date", "Системата ви е актуална"),
+        ("Current Version", "Текуща версия"),
+        ("Check for Updates", "Проверка за обновления"),
+        ("New version found", "Намерена е нова версия"),
+        ("current", "текуща"),
+        ("Server response could not be read", "Отговорът на сървъра не може да бъде прочетен"),
+        ("Could not connect to update server", "Неуспешно свързване със сървъра за обновления"),
+        ("Code", "Код"),
+        ("A network/system error occurred during update check", "Възникна мрежова/системна грешка при проверката за обновления"),
+        ("AcilBir Client", "Клиент AcilBir"),
+        ("AcilBir Support & Web Portal", "Поддръжка AcilBir и уеб портал"),\n            ("Do you want to update now?", "Искате ли да актуализирате сега?"),
     ].iter().cloned().collect();
 }

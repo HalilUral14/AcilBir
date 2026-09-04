@@ -85,7 +85,7 @@ def make_parser():
         "-m",
         "--manufacturer",
         type=str,
-        default="Purslane Tech Pte. Ltd.",
+        default="ABT Bilgisayar Programlama ve Tic.Ltd.Sti.",
         help="The app manufacturer.",
     )
     return parser

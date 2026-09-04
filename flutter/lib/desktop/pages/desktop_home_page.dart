@@ -87,10 +87,6 @@ class _DesktopHomePageState extends State<DesktopHomePage>
           alignment: Alignment.center,
           child: loadPowered(context),
         ),
-      Align(
-        alignment: Alignment.center,
-        child: loadLogo(),
-      ),
       buildTip(context),
       if (!isOutgoingOnly) buildIDBoard(context),
       if (!isOutgoingOnly) buildPasswordBoard(context),
@@ -416,7 +412,11 @@ class _DesktopHomePageState extends State<DesktopHomePage>
                 ),
             ],
           ),
-          SizedBox(
+          Align(
+            alignment: Alignment.center,
+            child: loadLogo(),
+          ),
+          const SizedBox(
             height: 10.0,
           ),
           Container(
@@ -469,7 +469,6 @@ class _DesktopHomePageState extends State<DesktopHomePage>
 
   Widget buildHelpCards(String updateUrl) {
     if (updateUrl.isNotEmpty && !isCardClosed) {
-      final isInstalled = (isWindows || isMacOS) && bind.mainIsInstalled();
       final canAutoUpdate = isWindows || isMacOS;
       final String btnText = canAutoUpdate ? 'Otomatik Güncelle' : 'Son Sürümü İndir';
       final GestureTapCallback onPressed = () async {
@@ -533,13 +532,6 @@ class _DesktopHomePageState extends State<DesktopHomePage>
           bind.mainIsCanInputMonitoring(prompt: true);
           watchIsInputMonitoring = true;
         }, help: 'Help', link: translate("doc_mac_permission"));
-      } else if (!isOutgoingOnly &&
-          !svcStopped.value &&
-          bind.mainIsInstalled() &&
-          !bind.mainIsInstalledDaemon(prompt: false)) {
-        return buildInstallCard("", "install_daemon_tip", "Install", () async {
-          bind.mainIsInstalledDaemon(prompt: true);
-        });
       }
       //// Disable microphone configuration for macOS. We will request the permission when needed.
       // else if ((await osxCanRecordAudio() !=
