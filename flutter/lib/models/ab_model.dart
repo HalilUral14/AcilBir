@@ -1124,16 +1124,47 @@ class LegacyAb extends BaseAb {
   }
 
   _mergePeerFromGroup(Peer p) {
+    if (p.platform.isNotEmpty &&
+        (p.hostname.isNotEmpty || p.username.isNotEmpty)) {
+      return;
+    }
     final g = gFFI.groupModel.peers.firstWhereOrNull((e) => p.id == e.id);
-    if (g == null) return;
-    if (p.username.isEmpty) {
-      p.username = g.username;
+    if (g != null) {
+      if (p.username.isEmpty) {
+        p.username = g.username;
+      }
+      if (p.hostname.isEmpty) {
+        p.hostname = g.hostname;
+      }
+      if (p.platform.isEmpty) {
+        p.platform = g.platform;
+      }
     }
-    if (p.hostname.isEmpty) {
-      p.hostname = g.hostname;
+    final lan =
+        gFFI.lanPeersModel.peers.firstWhereOrNull((e) => p.id == e.id);
+    if (lan != null) {
+      if (p.username.isEmpty) {
+        p.username = lan.username;
+      }
+      if (p.hostname.isEmpty) {
+        p.hostname = lan.hostname;
+      }
+      if (p.platform.isEmpty) {
+        p.platform = lan.platform;
+      }
     }
-    if (p.platform.isEmpty) {
-      p.platform = g.platform;
+    final recent =
+        gFFI.recentPeersModel.peers.firstWhereOrNull((e) => p.id == e.id);
+    if (recent != null) {
+      if (p.username.isEmpty) {
+        p.username = recent.username;
+      }
+      if (p.hostname.isEmpty) {
+        p.hostname = recent.hostname;
+      }
+      if (p.platform.isEmpty) {
+        p.platform = recent.platform;
+      }
     }
   }
 
@@ -1333,7 +1364,9 @@ class LegacyAb extends BaseAb {
     }
     if (data['peers'] is List) {
       for (final peer in data['peers']) {
-        peers.add(Peer.fromJson(peer));
+        final p = Peer.fromJson(peer);
+        _mergePeerFromGroup(p);
+        peers.add(p);
       }
     }
     if (isFull()) {
@@ -1469,6 +1502,7 @@ class Ab extends BaseAb {
             if (data is List) {
               for (final profile in data) {
                 final u = Peer.fromJson(profile);
+                _mergePeerFromGroup(u);
                 int index = tmpPeers.indexWhere((e) => e.id == u.id);
                 if (index < 0) {
                   tmpPeers.add(u);

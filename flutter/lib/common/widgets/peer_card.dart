@@ -7,6 +7,7 @@ import 'package:flutter_hbb/models/peer_tab_model.dart';
 import 'package:flutter_hbb/models/state_model.dart';
 import 'package:get/get.dart';
 import 'package:provider/provider.dart';
+import 'package:collection/collection.dart';
 
 import '../../common.dart';
 import '../../common/formatter/id_formatter.dart';
@@ -80,8 +81,58 @@ class _PeerCardState extends State<_PeerCard>
         child: child);
   }
 
+  void _tryEnrichPeer(Peer peer) {
+    if (peer.platform.isNotEmpty &&
+        (peer.hostname.isNotEmpty || peer.username.isNotEmpty)) {
+      return;
+    }
+    // Try from lanPeersModel
+    final lan =
+        gFFI.lanPeersModel.peers.firstWhereOrNull((e) => e.id == peer.id);
+    if (lan != null) {
+      if (peer.platform.isEmpty && lan.platform.isNotEmpty) {
+        peer.platform = lan.platform;
+      }
+      if (peer.hostname.isEmpty && lan.hostname.isNotEmpty) {
+        peer.hostname = lan.hostname;
+      }
+      if (peer.username.isEmpty && lan.username.isNotEmpty) {
+        peer.username = lan.username;
+      }
+    }
+    // Try from groupModel
+    final group =
+        gFFI.groupModel.peers.firstWhereOrNull((e) => e.id == peer.id);
+    if (group != null) {
+      if (peer.platform.isEmpty && group.platform.isNotEmpty) {
+        peer.platform = group.platform;
+      }
+      if (peer.hostname.isEmpty && group.hostname.isNotEmpty) {
+        peer.hostname = group.hostname;
+      }
+      if (peer.username.isEmpty && group.username.isNotEmpty) {
+        peer.username = group.username;
+      }
+    }
+    // Try from recentPeersModel
+    final recent =
+        gFFI.recentPeersModel.peers.firstWhereOrNull((e) => e.id == peer.id);
+    if (recent != null) {
+      if (peer.platform.isEmpty && recent.platform.isNotEmpty) {
+        peer.platform = recent.platform;
+      }
+      if (peer.hostname.isEmpty && recent.hostname.isNotEmpty) {
+        peer.hostname = recent.hostname;
+      }
+      if (peer.username.isEmpty && recent.username.isNotEmpty) {
+        peer.username = recent.username;
+      }
+    }
+  }
+
   Widget _buildPortrait() {
     final peer = super.widget.peer;
+    _tryEnrichPeer(peer);
     return Card(
         margin: EdgeInsets.symmetric(horizontal: 2),
         child: gestureDetector(
@@ -93,6 +144,7 @@ class _PeerCardState extends State<_PeerCard>
 
   Widget _buildLandscape() {
     final peer = super.widget.peer;
+    _tryEnrichPeer(peer);
     var deco = Rx<BoxDecoration?>(
       BoxDecoration(
         border: Border.all(color: Colors.transparent, width: _borderWidth),
@@ -135,6 +187,9 @@ class _PeerCardState extends State<_PeerCard>
     final name = hideUsernameOnCard == true
         ? peer.hostname
         : '${peer.username}${peer.username.isNotEmpty && peer.hostname.isNotEmpty ? '@' : ''}${peer.hostname}';
+    final displayName = name.isNotEmpty
+        ? name
+        : (peer.alias.isNotEmpty ? formatID(peer.id) : '-');
     final greyStyle = TextStyle(
         fontSize: 11,
         color: Theme.of(context).textTheme.titleLarge?.color?.withOpacity(0.6));
@@ -195,12 +250,12 @@ class _PeerCardState extends State<_PeerCard>
                         children: [
                           Flexible(
                             child: Tooltip(
-                              message: name,
+                              message: displayName,
                               waitDuration: const Duration(seconds: 1),
                               child: Align(
                                 alignment: Alignment.centerLeft,
                                 child: Text(
-                                  name,
+                                  displayName,
                                   style: isPortrait ? null : greyStyle,
                                   textAlign: TextAlign.start,
                                   overflow: TextOverflow.ellipsis,
@@ -285,6 +340,9 @@ class _PeerCardState extends State<_PeerCard>
     final name = hideUsernameOnCard == true
         ? peer.hostname
         : '${peer.username}${peer.username.isNotEmpty && peer.hostname.isNotEmpty ? '@' : ''}${peer.hostname}';
+    final displayName = name.isNotEmpty
+        ? name
+        : (peer.alias.isNotEmpty ? peer.alias : formatID(peer.id));
     final child = Card(
       color: Colors.transparent,
       elevation: 0,
@@ -319,10 +377,10 @@ class _PeerCardState extends State<_PeerCard>
                                 children: [
                                   Expanded(
                                     child: Tooltip(
-                                      message: name,
+                                      message: displayName,
                                       waitDuration: const Duration(seconds: 1),
                                       child: Text(
-                                        name,
+                                        displayName,
                                         style: const TextStyle(
                                             color: Colors.white70,
                                             fontSize: 12),

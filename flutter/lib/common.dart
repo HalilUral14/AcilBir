@@ -1713,7 +1713,11 @@ Future<bool> matchPeer(
 /// Get the image for the current [platform].
 Widget getPlatformImage(String platform, {double size = 50}) {
   if (platform.isEmpty) {
-    return Container(width: size, height: size);
+    return Icon(
+      Icons.desktop_windows_rounded,
+      size: size,
+      color: Colors.white.withOpacity(0.8),
+    );
   }
   if (platform == kPeerPlatformMacOS) {
     platform = 'mac';
