@@ -967,6 +967,51 @@ abstract class BaseAb {
   bool fullControl();
 
   Future<void> syncFromRecent(List<Peer> recents);
+
+  _mergePeerFromGroup(Peer p) {
+    if (p.platform.isNotEmpty &&
+        (p.hostname.isNotEmpty || p.username.isNotEmpty)) {
+      return;
+    }
+    final g = gFFI.groupModel.peers.firstWhereOrNull((e) => p.id == e.id);
+    if (g != null) {
+      if (p.username.isEmpty) {
+        p.username = g.username;
+      }
+      if (p.hostname.isEmpty) {
+        p.hostname = g.hostname;
+      }
+      if (p.platform.isEmpty) {
+        p.platform = g.platform;
+      }
+    }
+    final lan =
+        gFFI.lanPeersModel.peers.firstWhereOrNull((e) => p.id == e.id);
+    if (lan != null) {
+      if (p.username.isEmpty) {
+        p.username = lan.username;
+      }
+      if (p.hostname.isEmpty) {
+        p.hostname = lan.hostname;
+      }
+      if (p.platform.isEmpty) {
+        p.platform = lan.platform;
+      }
+    }
+    final recent =
+        gFFI.recentPeersModel.peers.firstWhereOrNull((e) => p.id == e.id);
+    if (recent != null) {
+      if (p.username.isEmpty) {
+        p.username = recent.username;
+      }
+      if (p.hostname.isEmpty) {
+        p.hostname = recent.hostname;
+      }
+      if (p.platform.isEmpty) {
+        p.platform = recent.platform;
+      }
+    }
+  }
 }
 
 class LegacyAb extends BaseAb {
@@ -1123,50 +1168,6 @@ class LegacyAb extends BaseAb {
     }
   }
 
-  _mergePeerFromGroup(Peer p) {
-    if (p.platform.isNotEmpty &&
-        (p.hostname.isNotEmpty || p.username.isNotEmpty)) {
-      return;
-    }
-    final g = gFFI.groupModel.peers.firstWhereOrNull((e) => p.id == e.id);
-    if (g != null) {
-      if (p.username.isEmpty) {
-        p.username = g.username;
-      }
-      if (p.hostname.isEmpty) {
-        p.hostname = g.hostname;
-      }
-      if (p.platform.isEmpty) {
-        p.platform = g.platform;
-      }
-    }
-    final lan =
-        gFFI.lanPeersModel.peers.firstWhereOrNull((e) => p.id == e.id);
-    if (lan != null) {
-      if (p.username.isEmpty) {
-        p.username = lan.username;
-      }
-      if (p.hostname.isEmpty) {
-        p.hostname = lan.hostname;
-      }
-      if (p.platform.isEmpty) {
-        p.platform = lan.platform;
-      }
-    }
-    final recent =
-        gFFI.recentPeersModel.peers.firstWhereOrNull((e) => p.id == e.id);
-    if (recent != null) {
-      if (p.username.isEmpty) {
-        p.username = recent.username;
-      }
-      if (p.hostname.isEmpty) {
-        p.hostname = recent.hostname;
-      }
-      if (p.platform.isEmpty) {
-        p.platform = recent.platform;
-      }
-    }
-  }
 
   @override
   Future<bool> changeTagForPeers(List<String> ids, List<dynamic> tags) async {
