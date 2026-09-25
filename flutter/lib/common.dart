@@ -4122,8 +4122,9 @@ void checkUpdate({bool isManual = false}) {
           platform = 'ios';
         }
 
-        // Remove any trailing slashes to prevent double-slash 404 routing errors in Gin/Nginx
-        final String cleanBaseUrl = _kUpdateApiBaseUrl.replaceAll(RegExp(r'/+$'), '');
+        // Remove trailing slashes and collapse duplicate channel suffixes (/admin/admin -> /admin)
+        String cleanBaseUrl = _kUpdateApiBaseUrl.replaceAll(RegExp(r'/+$'), '');
+        cleanBaseUrl = cleanBaseUrl.replaceAll(RegExp(r'(/admin)+$'), '/admin').replaceAll(RegExp(r'(/beta)+$'), '/beta');
         final String apiUrl = '$cleanBaseUrl/$platform';
         final res = await http.get(Uri.parse(apiUrl)).timeout(const Duration(seconds: 15));
 
