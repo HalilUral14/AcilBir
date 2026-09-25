@@ -778,6 +778,7 @@ pub static ref T: std::collections::HashMap<&'static str, &'static str> =
         ("Code", "Cod"),
         ("A network/system error occurred during update check", "A apărut o eroare de rețea/sistem în timpul verificării actualizării"),
         ("AcilBir Client", "Client AcilBir"),
-        ("AcilBir Support & Web Portal", "Suport AcilBir și Portal Web"),\n            ("Do you want to update now?", "Doriți să actualizați acum?"),
+        ("AcilBir Support & Web Portal", "Suport AcilBir și Portal Web"),
+            ("Do you want to update now?", "Doriți să actualizați acum?"),
     ].iter().cloned().collect();
 }
