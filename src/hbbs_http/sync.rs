@@ -178,7 +178,7 @@ async fn start_hbbs_sync_async() {
                     }
                     let v = v.to_string();
                     let mut hash = "".to_owned();
-                    if crate::is_public(&url) {
+                    if !crate::is_public(&url) {
                         use sha2::{Digest, Sha256};
                         let mut hasher = Sha256::new();
                         hasher.update(url.as_bytes());
@@ -236,6 +236,7 @@ async fn start_hbbs_sync_async() {
                 v["id"] = json!(id);
                 v["uuid"] = json!(crate::encode64(hbb_common::get_uuid()));
                 v["ver"] = json!(hbb_common::get_version_number(crate::VERSION));
+                v["version"] = json!(crate::VERSION);
                 if !conns.is_empty() {
                     v["conns"] = json!(conns);
                 }
@@ -245,6 +246,7 @@ async fn start_hbbs_sync_async() {
                     if let Ok(mut rsp) = serde_json::from_str::<HashMap::<&str, Value>>(&s) {
                         if rsp.remove("sysinfo").is_some() {
                             info_uploaded.uploaded = false;
+                            info_uploaded.last_uploaded = None;
                             config::Status::set("sysinfo_hash", "".to_owned());
                             log::info!("sysinfo required to forcely update");
                         }

@@ -870,6 +870,8 @@ pub fn get_sysinfo() -> serde_json::Value {
     let cpu_freq = (cpu_freq as f64 / 1024. * 100.).round() / 100.;
     let cpu = if cpu_freq > 0. {
         format!("{}, {}GHz, ", cpu_name, cpu_freq)
+    } else if !cpu_name.is_empty() {
+        format!("{}, ", cpu_name)
     } else {
         "".to_owned() // android
     };

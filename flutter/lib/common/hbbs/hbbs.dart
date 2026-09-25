@@ -108,25 +108,40 @@ class PeerPayload {
     if (field == null) {
       return null;
     }
-    final fieldStr = field.toString();
-    List<String> list = fieldStr.split(' / ');
-    if (list.isEmpty) return null;
-    final os = list[0];
-    switch (os.toLowerCase()) {
-      case 'windows':
-        return kPeerPlatformWindows;
-      case 'linux':
-        return kPeerPlatformLinux;
-      case 'macos':
-        return kPeerPlatformMacOS;
-      case 'android':
-        return kPeerPlatformAndroid;
-      default:
-        if (fieldStr.toLowerCase().contains('linux')) {
-          return kPeerPlatformLinux;
-        }
-        return null;
+    final fieldStr = field.toString().trim();
+    if (fieldStr.isEmpty) return null;
+    final low = fieldStr.toLowerCase();
+    if (low.contains('windows') || low.contains('win')) {
+      return kPeerPlatformWindows;
     }
+    if (low.contains('mac') || low.contains('darwin') || low.contains('apple') || low.contains('osx')) {
+      return kPeerPlatformMacOS;
+    }
+    if (low.contains('android')) {
+      return kPeerPlatformAndroid;
+    }
+    if (low.contains('linux') ||
+        low.contains('ubuntu') ||
+        low.contains('debian') ||
+        low.contains('centos') ||
+        low.contains('fedora') ||
+        low.contains('redhat') ||
+        low.contains('arch') ||
+        low.contains('mint') ||
+        low.contains('manjaro') ||
+        low.contains('suse') ||
+        low.contains('alpine')) {
+      return kPeerPlatformLinux;
+    }
+    List<String> list = fieldStr.split(' / ');
+    if (list.isNotEmpty) {
+      final os = list[0].toLowerCase();
+      if (os == 'windows') return kPeerPlatformWindows;
+      if (os == 'linux') return kPeerPlatformLinux;
+      if (os == 'macos' || os == 'mac os') return kPeerPlatformMacOS;
+      if (os == 'android') return kPeerPlatformAndroid;
+    }
+    return null;
   }
 }
 

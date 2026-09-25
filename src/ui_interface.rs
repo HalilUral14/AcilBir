@@ -52,6 +52,7 @@ pub struct LoginDeviceInfo {
     pub os: String,
     pub r#type: String,
     pub name: String,
+    pub version: String,
 }
 
 lazy_static::lazy_static! {
@@ -1343,6 +1344,7 @@ pub fn get_login_device_info() -> LoginDeviceInfo {
         os: std::env::consts::OS.to_owned(),
         r#type: "client".to_owned(),
         name: crate::common::hostname(),
+        version: crate::VERSION.to_owned(),
     }
 }
 
