@@ -1,6 +1,9 @@
 use hbb_common::{
     bail,
-    base64::{engine::general_purpose::URL_SAFE_NO_PAD, Engine as _},
+    base64::{
+        engine::general_purpose::{URL_SAFE, URL_SAFE_NO_PAD},
+        Engine as _,
+    },
     sodiumoxide::crypto::sign,
     ResultType,
 };
@@ -20,7 +23,9 @@ pub struct CustomServer {
 
 fn get_custom_server_from_config_string(s: &str) -> ResultType<CustomServer> {
     let tmp: String = s.chars().rev().collect();
-    let data = URL_SAFE_NO_PAD.decode(tmp)?;
+    let data = URL_SAFE_NO_PAD
+        .decode(&tmp)
+        .or_else(|_| URL_SAFE.decode(&tmp))?;
     // AcilBir: Önce imzasız JSON olarak parse'ı dene
     if let Ok(lic) = serde_json::from_slice::<CustomServer>(&data) {
         return Ok(lic);
@@ -59,7 +64,7 @@ pub fn get_custom_server_from_string(s: &str) -> ResultType<CustomServer> {
      * This allows using a ',' (comma) symbol as a final delimiter.
      */
     if s.to_lowercase().contains("host=") {
-        let stripped = &s[s.to_lowercase().find("host=").unwrap_or(0)..s.len()];
+        let stripped = &s[s.to_ascii_lowercase().find("host=").unwrap_or(0)..s.len()];
         let strs: Vec<&str> = stripped.split(",").collect();
         let mut host = String::default();
         let mut key = String::default();
@@ -217,5 +222,33 @@ mod test {
         assert_eq!(
             get_custom_server_from_string("rustdesk-licensed--0nI900VsFHZVBVdIlncwpHS4V0bOZ0dtVldrpVO4JHdCp0YV5WdzUGZzdnYRVjI6ISeltmIsISMuEjLx4SMiojI0N3boJye--.exe")
                 .unwrap(), lic);
+        // padded base64 (one '=' after reversal) is accepted, wrong padding is not
+        assert_eq!(
+            get_custom_server_from_string("rustdesk-licensed-=0nI900VsFHZVBVdIlncwpHS4V0bOZ0dtVldrpVO4JHdCp0YV5WdzUGZzdnYRVjI6ISeltmIsISMuEjLx4SMiojI0N3boJye.exe")
+                .unwrap(), lic);
+        assert!(
+            get_custom_server_from_string("rustdesk-licensed-==0nI900VsFHZVBVdIlncwpHS4V0bOZ0dtVldrpVO4JHdCp0YV5WdzUGZzdnYRVjI6ISeltmIsISMuEjLx4SMiojI0N3boJye.exe")
+                .is_err());
+        // bare string as passed to `--config`
+        assert_eq!(
+            get_custom_server_from_string("=0nI900VsFHZVBVdIlncwpHS4V0bOZ0dtVldrpVO4JHdCp0YV5WdzUGZzdnYRVjI6ISeltmIsISMuEjLx4SMiojI0N3boJye.exe")
+                .unwrap(), lic);
+    }
+
+    #[test]
+    fn test_filename_license_string_in_non_ascii_path() {
+        // Windows passes the full exe path, and `İ` grows from 2 to 3 bytes when lowercased.
+        assert_eq!(
+            get_custom_server_from_string(
+                r"C:\Users\İsmail\Downloads\rustdesk-host=server.example.net,key=Zm9vYmFyLiwyCg==.exe"
+            )
+            .unwrap(),
+            CustomServer {
+                host: "server.example.net".to_owned(),
+                key: "Zm9vYmFyLiwyCg==".to_owned(),
+                api: "".to_owned(),
+                relay: "".to_owned(),
+            }
+        );
     }
 }
