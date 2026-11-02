@@ -2907,12 +2907,6 @@ pub fn main_get_common(key: String) -> String {
             {
                 return "error:unsupported".to_owned();
             }
-                };
-            }
-            #[cfg(not(any(target_os = "windows", target_os = "macos")))]
-            {
-                "error:unsupported".to_owned()
-            }
         } else {
             "".to_owned()
         }
