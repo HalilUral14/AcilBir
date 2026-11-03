@@ -1866,6 +1866,7 @@ impl PeerConfig {
                 if store {
                     config.store_(id);
                 }
+                config.trusted_device_v2.clear();
                 config
             }
             Err(err) => {

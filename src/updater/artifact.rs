@@ -155,53 +155,52 @@ fn read_limited_response_bytes<R: Read>(
 }
 
 pub fn get_update_download_file_from_url(url: &str) -> Option<PathBuf> {
+    if !url.starts_with("https://") || url.contains("..") {
+        return None;
+    }
     let parsed = url::Url::parse(url).ok()?;
-    if parsed.scheme() != "https" && parsed.scheme() != "http" {
+    if parsed.scheme() != "https"
+        || !parsed.username().is_empty()
+        || parsed.password().is_some()
+        || parsed.port().is_some()
+        || parsed.query().is_some()
+        || parsed.fragment().is_some()
+    {
         return None;
     }
-    if !parsed.username().is_empty() || parsed.password().is_some() {
-        return None;
-    }
 
-    // Check if it matches GitHub release structure (rustdesk or custom repo)
-    if parsed.host_str() == Some("github.com") {
-        if let Some(mut segments) = parsed.path_segments() {
-            if let (Some(_owner), Some(_repo), Some(releases), Some(download), Some(tag), Some(filename)) = (
-                segments.next(),
-                segments.next(),
-                segments.next(),
-                segments.next(),
-                segments.next(),
-                segments.next(),
-            ) {
-                if releases == "releases" && download == "download" && !tag.is_empty() && segments.next().is_none() && is_plain_update_filename(filename) {
-                    return Some(std::env::temp_dir().join(filename));
-                }
-            }
+    let host = parsed.host_str()?;
+    if host == "github.com" {
+        let mut segments = parsed.path_segments()?;
+        let owner = segments.next()?;
+        let repo = segments.next()?;
+        let releases = segments.next()?;
+        let download = segments.next()?;
+        let tag = segments.next()?;
+        let filename = segments.next()?;
+
+        if (owner != "rustdesk" && owner != "HalilUral14" && owner != "ABT-BILGISAYAR-LTD-STI")
+            || releases != "releases"
+            || download != "download"
+            || tag.is_empty()
+            || segments.next().is_some()
+            || !is_plain_update_filename(filename)
+        {
+            return None;
         }
-    }
 
-    // Direct asset or custom server URL (e.g. acilbir.com/api/...)
-    if let Some(segments) = parsed.path_segments() {
-        if let Some(last) = segments.last() {
-            let last_clean = last.split('?').next().unwrap_or(last).split('#').next().unwrap_or(last);
-            if is_plain_update_filename(last_clean) {
-                return Some(std::env::temp_dir().join(last_clean));
-            }
+        Some(std::env::temp_dir().join(filename))
+    } else if host == "acilbir.com" || host == "www.acilbir.com" {
+        let mut segments = parsed.path_segments()?;
+        let filename = segments.next_back()?;
+        if is_plain_update_filename(filename) {
+            Some(std::env::temp_dir().join(filename))
+        } else {
+            None
         }
+    } else {
+        None
     }
-
-    let app_name = crate::get_app_name().to_lowercase();
-    #[cfg(target_os = "windows")]
-    let filename = format!("{}-update.exe", app_name);
-    #[cfg(target_os = "macos")]
-    let filename = format!("{}-update.dmg", app_name);
-    #[cfg(target_os = "linux")]
-    let filename = format!("{}-update.deb", app_name);
-    #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
-    let filename = format!("{}-update.bin", app_name);
-
-    Some(std::env::temp_dir().join(filename))
 }
 
 pub use get_update_download_file_from_url as get_download_file_from_url;
