@@ -3981,7 +3981,7 @@ pub fn update_to(file: &str) -> ResultType<()> {
             );
         }
     } else if file.ends_with(".msi") {
-        if let Err(e) = update_me_msi(file, false) {
+        if let Err(e) = update_me_msi(file, "", false) {
             bail!("Failed to run the update msi: {}", e);
         }
     } else {
@@ -4350,6 +4350,21 @@ pub fn is_x64() -> bool {
         GetNativeSystemInfo(&mut sys_info as _);
     }
     unsafe { sys_info.u.s().wProcessorArchitecture == PROCESSOR_ARCHITECTURE_AMD64 }
+}
+
+#[inline]
+pub fn release_arch_suffix() -> Option<&'static str> {
+    if cfg!(target_arch = "x86_64") {
+        Some("x86_64")
+    } else if cfg!(target_arch = "x86") {
+        Some("x86")
+    } else if cfg!(target_arch = "aarch64") {
+        Some("aarch64")
+    } else if cfg!(target_arch = "arm") {
+        Some("armv7")
+    } else {
+        None
+    }
 }
 
 pub fn try_kill_rustdesk_main_window_process() -> ResultType<()> {

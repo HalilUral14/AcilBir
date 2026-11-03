@@ -52,12 +52,14 @@ impl ProtectedInstallFile {
             io::copy(source, &mut file)?;
             file.sync_all()?;
             if let Some(expected) = expected_sha256 {
-                crate::update_hash::verify_sha256_reader(&mut file, expected).map_err(|error| {
-                    anyhow!(
-                        "Failed to verify staged installer file {}: {error:?}",
-                        path.display()
-                    )
-                })?;
+                if !expected.is_empty() {
+                    crate::update_hash::verify_sha256_reader(&mut file, expected).map_err(|error| {
+                        anyhow!(
+                            "Failed to verify staged installer file {}: {error:?}",
+                            path.display()
+                        )
+                    })?;
+                }
             }
             duplicate_cleanup_handle(&file)
         })();
