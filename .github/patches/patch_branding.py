@@ -3,6 +3,8 @@ import os
 import re
 import sys
 import glob
+import argparse
+import datetime
 
 def sanitize_identifier(name):
     # alphanumeric only, lowercase
@@ -42,32 +44,53 @@ def replace_exact(path, old_str, new_str):
     return False
 
 def main():
-    raw_ver = os.environ.get("VERSION", "").strip()
+    parser = argparse.ArgumentParser(description="Universal Branding & Update Patch")
+    parser.add_argument("--root", default=".", help="Root directory of repository")
+    parser.add_argument("--appname", default=None, help="Application name")
+    parser.add_argument("--compname", default=None, help="Company name")
+    parser.add_argument("--server-host", "--server", dest="server_host", default=None, help="Server host")
+    parser.add_argument("--key", default=None, help="Server public key")
+    parser.add_argument("--api-server", dest="api_server", default=None, help="API server URL")
+    parser.add_argument("--url-link", dest="url_link", default=None, help="Website URL")
+    parser.add_argument("--download-link", dest="download_link", default=None, help="Client download link")
+    parser.add_argument("--variant", default=None, help="Build variant (client, admin, beta)")
+    parser.add_argument("--version", dest="version", default=None, help="Version string")
+    parser.add_argument("--androidappid", default=None, help="Android application ID")
+    args, _ = parser.parse_known_args()
+
+    if args.root and args.root != ".":
+        try:
+            os.chdir(args.root)
+            print(f"[patch_branding] Changed directory to: {args.root}")
+        except Exception as e:
+            print(f"[patch_branding] Warning changing dir to {args.root}: {e}")
+
+    raw_ver = (args.version or os.environ.get("VERSION", "")).strip()
     clean_ver = re.sub(r'^[vV]', '', raw_ver).strip()
     if not clean_ver or clean_ver in ("master", "nightly"):
         clean_ver = "1.5.1"
 
-    appname = os.environ.get("appname", "").strip()
+    appname = (args.appname or os.environ.get("appname", "")).strip()
     if not appname:
         appname = "AcilBir"
 
-    compname = os.environ.get("compname", "").strip()
+    compname = (args.compname or os.environ.get("compname", "")).strip()
     if not compname:
         compname = "ABT Bilgisayar Programlama ve Tic.Ltd.Sti."
 
-    url_link = os.environ.get("urlLink", "").strip()
+    url_link = (args.url_link or os.environ.get("urlLink", "")).strip()
     if not url_link:
         url_link = "https://acilbir.com"
 
-    server_host = os.environ.get("server", "").strip()
+    server_host = (args.server_host or os.environ.get("server", "")).strip()
     if not server_host or server_host == "rs-ny.rustdesk.com":
         server_host = "acilbir.com"
 
-    server_key = os.environ.get("key", "").strip()
+    server_key = (args.key or os.environ.get("key", "")).strip()
     if not server_key or server_key == "OeVuKk5nlHiXp+APNn0Y3pC1Iwpwn44JGqrQCsWqmBw=":
         server_key = "ctqWJG3PIl9bk3h3Obs8HPS4wRZzCuZPhsjuSlwzhpE="
 
-    api_server = os.environ.get("apiServer", "").strip()
+    api_server = (args.api_server or os.environ.get("apiServer", "")).strip()
     if not api_server or api_server.startswith("rs-ny.rustdesk.com"):
         api_server = f"https://{server_host}"
     elif not api_server.startswith("http://") and not api_server.startswith("https://"):
@@ -76,14 +99,15 @@ def main():
     update_base_host = api_server.replace(":21114", "")
     if not update_base_host.startswith("http://") and not update_base_host.startswith("https://"):
         update_base_host = f"https://{update_base_host}"
+    update_base_host = update_base_host.rstrip('/')
 
-    download_link = os.environ.get("downloadLink", "").strip()
+    download_link = (args.download_link or os.environ.get("downloadLink", "")).strip()
     if not download_link:
         download_link = f"https://{server_host}/api/client-downloads/download/Windows"
 
-    variant = os.environ.get("variant", "client").strip()
+    variant = (args.variant or os.environ.get("variant", "client")).strip()
 
-    android_app_id = os.environ.get("androidappid", "").strip()
+    android_app_id = (args.androidappid or os.environ.get("androidappid", "")).strip()
     clean_id = sanitize_identifier(appname)
     if not android_app_id or android_app_id == "com.carriez.flutter_hbb":
         android_app_id = f"com.{clean_id}.app"
@@ -121,7 +145,6 @@ def main():
     replace_in_file("libs/portable/Cargo.toml", r'OriginalFilename\s*=\s*"[^"]+"', f'OriginalFilename = "{appname}.exe"')
     replace_in_file("libs/portable/Cargo.toml", r'description\s*=\s*"[^"]+"', f'description = "{appname} Remote Desktop"')
 
-    import datetime
     current_year = datetime.datetime.now().year
     for toml_f in ["Cargo.toml", "libs/portable/Cargo.toml"]:
         if os.path.exists(toml_f):
