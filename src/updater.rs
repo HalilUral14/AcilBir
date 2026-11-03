@@ -340,7 +340,7 @@ fn check_update(manually: bool) -> ResultType<()> {
             crate::platform::macos::update_to_dmg(&file_path.to_string_lossy())?;
         }
     }
-    Ok(())    Ok(())
+    Ok(())
 }
 
 #[cfg(target_os = "windows")]
