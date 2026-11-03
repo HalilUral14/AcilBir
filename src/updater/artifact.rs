@@ -155,7 +155,11 @@ fn read_limited_response_bytes<R: Read>(
 }
 
 pub fn get_update_download_file_from_url(url: &str) -> Option<PathBuf> {
-    if !url.starts_with("https://") || url.contains("..") {
+    if (!url.starts_with("https://github.com/")
+        && !url.starts_with("https://acilbir.com/")
+        && !url.starts_with("https://www.acilbir.com/"))
+        || url.contains("..")
+    {
         return None;
     }
     let parsed = url::Url::parse(url).ok()?;
