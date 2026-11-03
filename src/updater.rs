@@ -2,6 +2,7 @@ mod artifact;
 mod download;
 
 use crate::common::do_check_software_update;
+use crate::hbbs_http::create_http_client_with_url_strict;
 use artifact::verified_update_artifact_from_release_page_url;
 pub(crate) use artifact::{current_update_arch, current_update_format, current_update_platform};
 pub use artifact::{
@@ -337,7 +338,7 @@ fn check_update(manually: bool) -> ResultType<()> {
             #[cfg(target_os = "windows")]
             crate::platform::update_to(&file_path.to_string_lossy())?;
             #[cfg(target_os = "macos")]
-            crate::platform::macos::update_to_dmg(&file_path.to_string_lossy())?;
+            crate::platform::macos::update_from_dmg(&file_path.to_string_lossy())?;
         }
     }
     Ok(())
@@ -745,7 +746,7 @@ pub fn check_update_as_root() -> ResultType<bool> {
         bail!("[root-update] Active session started during download, deferring update.");
     }
     // Install silently as root
-    let result = crate::platform::update_from_dmg_as_root(&tmp_path, &artifact.version);
+    let result = crate::platform::update_from_dmg_as_root(&tmp_path, &version);
     // Clean up download directory
     if let Err(e) = std::fs::remove_dir_all(&private_tmp) {
         log::warn!(

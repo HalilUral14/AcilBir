@@ -3081,8 +3081,19 @@ pub fn main_set_common(_key: String, _value: String) {
                     let _ = std::fs::remove_file(&zone_ads);
                 }
                 if let Some(f) = new_version_file.to_str() {
-                    #[cfg(any(target_os = "windows", target_os = "macos"))]
+                    #[cfg(target_os = "windows")]
                     match crate::platform::update_to(f) {
+                        Ok(_) => {
+                            log::info!("Update process is launched successfully!");
+                        }
+                        Err(e) => {
+                            log::error!("Failed to update to new version, {}", e);
+                            let _ = std::fs::remove_file(f);
+                            push_update_me_error(format!("Failed to update to new version, {}", e));
+                        }
+                    }
+                    #[cfg(target_os = "macos")]
+                    match crate::platform::macos::update_from_dmg(f) {
                         Ok(_) => {
                             log::info!("Update process is launched successfully!");
                         }
