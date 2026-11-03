@@ -2940,6 +2940,8 @@ pub mod keys {
     pub const OPTION_API_SERVER: &str = "api-server";
     pub const OPTION_KEY: &str = "key";
     pub const OPTION_ALLOW_WEBSOCKET: &str = "allow-websocket";
+    pub const OPTION_WEBSOCKET_PORT: &str = "websocket-port";
+    pub const OPTION_ALLOW_WEBRTC_CC: &str = "allow-webrtc-congestion-control";
     pub const OPTION_PRESET_ADDRESS_BOOK_NAME: &str = "preset-address-book-name";
     pub const OPTION_PRESET_ADDRESS_BOOK_TAG: &str = "preset-address-book-tag";
     pub const OPTION_PRESET_ADDRESS_BOOK_ALIAS: &str = "preset-address-book-alias";
