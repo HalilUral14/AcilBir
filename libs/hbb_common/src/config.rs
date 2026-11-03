@@ -51,6 +51,7 @@ pub const READ_TIMEOUT: u64 = 18_000;
 pub const REG_INTERVAL: i64 = 15_000;
 pub const COMPRESS_LEVEL: i32 = 3;
 const SERIAL: i32 = 3;
+const CONFIG_STORE_LOG_INTERVAL: Duration = Duration::from_secs(30);
 
 #[cfg(target_os = "macos")]
 lazy_static::lazy_static! {
@@ -249,8 +250,15 @@ pub struct Config2 {
     serial: i32,
     #[serde(default, deserialize_with = "deserialize_string")]
     unlock_pin: String,
-    #[serde(default, deserialize_with = "deserialize_string")]
+    // Imported by clients that support legacy trusted-device compatibility.
+    #[serde(
+        default,
+        deserialize_with = "deserialize_string",
+        skip_serializing_if = "String::is_empty"
+    )]
     trusted_devices: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    trusted_devices_v2: Option<toml::Value>,
 
     #[serde(default)]
     socks: Option<Socks5Server>,
@@ -270,6 +278,8 @@ pub struct Resolution {
 pub struct PeerConfig {
     #[serde(default, deserialize_with = "deserialize_vec_u8")]
     pub password: Vec<u8>,
+    #[serde(default, skip_serializing_if = "String::is_empty")]
+    pub trusted_device_v2: String,
     #[serde(default, deserialize_with = "deserialize_size")]
     pub size: Size,
     #[serde(default, deserialize_with = "deserialize_size")]
@@ -397,6 +407,7 @@ impl Default for PeerConfig {
     fn default() -> Self {
         Self {
             password: Default::default(),
+            trusted_device_v2: Default::default(),
             size: Default::default(),
             size_ft: Default::default(),
             size_pf: Default::default(),
@@ -516,7 +527,31 @@ impl Config2 {
 
     fn store(&self) {
         let mut config = self.clone();
-        let stored = Config::load_::<Config2>("2");
+        let stored = match try_load_path_for_store::<Self>(Self::file()) {
+            Ok(mut stored) => {
+                if stored.trusted_devices_v2().is_err() {
+                    crate::throttled_log!(
+                        CONFIG_STORE_LOG_INTERVAL,
+                        warn,
+                        "Invalid trusted-device grants field; saving settings without V2 trust credentials"
+                    );
+                    stored.trusted_devices_v2 = None;
+                }
+                stored
+            }
+            Err(err) => {
+                crate::throttled_log!(
+                    CONFIG_STORE_LOG_INTERVAL,
+                    error,
+                    "Failed to read config2; skipping save: {}",
+                    err
+                );
+                return;
+            }
+        };
+        // Ordinary settings must not restore grants from a stale snapshot.
+        config.trusted_devices_v2 = stored.trusted_devices_v2;
+        config.trusted_devices = stored.trusted_devices;
         if let Some(mut socks) = config.socks {
             let stored_password = stored
                 .socks
@@ -530,6 +565,71 @@ impl Config2 {
         config.unlock_pin =
             keep_encrypted_storage_if_plaintext_unchanged(&config.unlock_pin, &stored.unlock_pin);
         Config::store_(&config, "2");
+    }
+
+    pub fn get_trusted_devices_v2() -> crate::ResultType<String> {
+        Self::get_trusted_device_stores().map(|(current, _)| current)
+    }
+
+    pub fn get_trusted_device_stores() -> crate::ResultType<(String, String)> {
+        let _lock = CONFIG2.read().unwrap();
+        let config: Self = try_load_path(Self::file())?;
+        Ok((config.trusted_devices_v2()?.to_owned(), config.trusted_devices))
+    }
+
+    pub fn has_trusted_devices_v2() -> crate::ResultType<bool> {
+        let _lock = CONFIG2.read().unwrap();
+        let config: Self = try_load_path(Self::file())?;
+        // Explicit revocation must also replace malformed grant fields.
+        Ok(config
+            .trusted_devices_v2
+            .as_ref()
+            .is_some_and(|value| value.as_str() != Some("")))
+    }
+
+    fn trusted_devices_v2(&self) -> crate::ResultType<&str> {
+        match &self.trusted_devices_v2 {
+            None => Ok(""),
+            Some(toml::Value::String(value)) => Ok(value),
+            Some(_) => Err(anyhow!("Invalid trusted-device grants field")),
+        }
+    }
+
+    pub fn set_trusted_devices_v2(value: String) -> crate::ResultType<()> {
+        Self {
+            trusted_devices_v2: (!value.is_empty()).then(|| toml::Value::String(value)),
+            ..Default::default()
+        }
+        .sync_trusted_devices()
+    }
+
+    pub fn sync_trusted_devices(&self) -> crate::ResultType<()> {
+        self.trusted_devices_v2()?;
+        let mut current = CONFIG2.write().unwrap();
+        let mut stored: Self = try_load_path(Self::file())?;
+        if stored.trusted_devices != self.trusted_devices
+            || stored.trusted_devices_v2 != self.trusted_devices_v2
+        {
+            stored.trusted_devices.clone_from(&self.trusted_devices);
+            stored
+                .trusted_devices_v2
+                .clone_from(&self.trusted_devices_v2);
+            store_path(Self::file(), &stored)?;
+        }
+        current.trusted_devices = stored.trusted_devices;
+        current.trusted_devices_v2 = stored.trusted_devices_v2;
+        Ok(())
+    }
+
+    pub fn get_for_sync() -> crate::ResultType<Self> {
+        let current = CONFIG2.read().unwrap();
+        // The login-screen server can share this file with the system service.
+        let stored: Self = try_load_path(Self::file())?;
+        Ok(Self {
+            trusted_devices: stored.trusted_devices,
+            trusted_devices_v2: stored.trusted_devices_v2,
+            ..current.clone()
+        })
     }
 
     pub fn get() -> Config2 {
@@ -574,6 +674,47 @@ pub fn load_path<T: serde::Serialize + serde::de::DeserializeOwned + Default + s
 }
 
 #[inline]
+fn try_load_path<T: serde::Serialize + serde::de::DeserializeOwned + Default>(
+    path: PathBuf,
+) -> crate::ResultType<T> {
+    match confy::load_path(path) {
+        Ok(config) => Ok(config),
+        Err(confy::ConfyError::GeneralLoadError(error))
+            if error.kind() == std::io::ErrorKind::NotFound =>
+        {
+            Ok(T::default())
+        }
+        Err(confy::ConfyError::BadTomlData(_)) => Err(anyhow!("Invalid configuration file")),
+        Err(error) => Err(error.into()),
+    }
+}
+
+fn try_load_path_for_store<T: serde::Serialize + serde::de::DeserializeOwned + Default>(
+    path: PathBuf,
+) -> crate::ResultType<T> {
+    match confy::load_path(path) {
+        Ok(config) => Ok(config),
+        Err(error)
+            if matches!(&error, confy::ConfyError::BadTomlData(_))
+                || matches!(&error, confy::ConfyError::ReadConfigurationFileError(error)
+                    if error.kind() == std::io::ErrorKind::InvalidData) =>
+        {
+            crate::throttled_log!(
+                CONFIG_STORE_LOG_INTERVAL,
+                warn,
+                "Invalid configuration file; saving settings without trust credentials"
+            );
+            Ok(T::default())
+        }
+        Err(confy::ConfyError::GeneralLoadError(error))
+            if error.kind() == std::io::ErrorKind::NotFound =>
+        {
+            Ok(T::default())
+        }
+        Err(error) => Err(error.into()),
+    }
+}
+
 pub fn store_path<T: serde::Serialize>(path: PathBuf, cfg: T) -> crate::ResultType<()> {
     #[cfg(not(windows))]
     {
@@ -1701,6 +1842,8 @@ impl Config {
 
 const PEERS: &str = "peers";
 
+static PEER_CONFIG_WRITE_LOCK: Mutex<()> = Mutex::new(());
+
 impl PeerConfig {
     pub fn load(id: &str) -> PeerConfig {
         let _lock = CONFIG.read().unwrap();
@@ -1751,13 +1894,47 @@ impl PeerConfig {
                 *v = encrypt_str_or_original(v, PASSWORD_ENC_VERSION, ENCRYPT_MAX_LEN)
             }
         }
+        let _lock = PEER_CONFIG_WRITE_LOCK.lock().unwrap();
+        // A stale settings snapshot must not overwrite a newly issued credential.
+        config.trusted_device_v2 = match try_load_path_for_store::<Self>(Self::path(id)) {
+            Ok(stored) => stored.trusted_device_v2,
+            Err(err) => {
+                crate::throttled_log!(
+                    CONFIG_STORE_LOG_INTERVAL,
+                    error,
+                    "Failed to read peer config '{}'; skipping save: {}",
+                    id,
+                    err
+                );
+                return;
+            }
+        };
         if let Err(err) = store_path(Self::path(id), config) {
             log::error!("Failed to store config: {}", err);
         }
         NEW_STORED_PEER_CONFIG.lock().unwrap().insert(id.to_owned());
     }
 
+    pub fn get_trusted_device_v2(id: &str) -> crate::ResultType<String> {
+        let _lock = PEER_CONFIG_WRITE_LOCK.lock().unwrap();
+        let config: Self = try_load_path(Self::path(id))?;
+        Ok(config.trusted_device_v2)
+    }
+
+    pub fn set_trusted_device_v2(
+        id: &str,
+        value: String,
+        info: PeerInfoSerde,
+    ) -> crate::ResultType<()> {
+        let _lock = PEER_CONFIG_WRITE_LOCK.lock().unwrap();
+        let mut config: Self = try_load_path(Self::path(id))?;
+        config.trusted_device_v2 = value;
+        config.info = info;
+        store_path(Self::path(id), config)
+    }
+
     pub fn remove(id: &str) {
+        let _lock = PEER_CONFIG_WRITE_LOCK.lock().unwrap();
         fs::remove_file(Self::path(id)).ok();
     }
 
@@ -2942,6 +3119,8 @@ pub mod keys {
     pub const OPTION_ALLOW_WEBSOCKET: &str = "allow-websocket";
     pub const OPTION_WEBSOCKET_PORT: &str = "websocket-port";
     pub const OPTION_ALLOW_WEBRTC_CC: &str = "allow-webrtc-congestion-control";
+    pub const OPTION_ALLOW_KCP_CC: &str = "allow-kcp-congestion-control";
+    pub const OPTION_TRUSTED_DEVICE_EXPIRATION: &str = "trusted-device-expiration";
     pub const OPTION_PRESET_ADDRESS_BOOK_NAME: &str = "preset-address-book-name";
     pub const OPTION_PRESET_ADDRESS_BOOK_TAG: &str = "preset-address-book-tag";
     pub const OPTION_PRESET_ADDRESS_BOOK_ALIAS: &str = "preset-address-book-alias";
