@@ -7,7 +7,9 @@ script:
  - mkdir ./AppDir
  - mv ./usr ./AppDir/usr
  # icon setup
- - for i in 32 64 128; do mkdir -p ./AppDir/usr/share/icons/hicolor/${i}x${i}/apps/; cp ../res/${i}x${i}.png ./AppDir/usr/share/icons/hicolor/${i}x${i}/apps/rustdesk.png; done
+ - mkdir -p ./AppDir/usr/share/icons/hicolor/32x32/apps/; cp ../res/32x32.png ./AppDir/usr/share/icons/hicolor/32x32/apps/rustdesk.png
+ - mkdir -p ./AppDir/usr/share/icons/hicolor/64x64/apps/; cp ../res/64x64.png ./AppDir/usr/share/icons/hicolor/64x64/apps/rustdesk.png
+ - mkdir -p ./AppDir/usr/share/icons/hicolor/128x128/apps/; cp ../res/128x128.png ./AppDir/usr/share/icons/hicolor/128x128/apps/rustdesk.png
  - mkdir -p ./AppDir/usr/share/icons/hicolor/256x256/apps/; cp ../res/128x128@2x.png ./AppDir/usr/share/icons/hicolor/256x256/apps/rustdesk.png
  - mkdir -p ./AppDir/usr/share/pixmaps/; cp ../res/128x128@2x.png ./AppDir/usr/share/pixmaps/rustdesk.png
  - mkdir -p ./AppDir/usr/share/icons/hicolor/scalable/apps/; cp ../res/scalable.svg ./AppDir/usr/share/icons/hicolor/scalable/apps/rustdesk.svg
